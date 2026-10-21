@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { SectionList, Text, View } from 'react-native';
-import { EmptyText, Loading } from '@/components/ui';
+import { EmptyText, Fab, Loading } from '@/components/ui';
 import { TransactionRow } from '@/components/TransactionRow';
 import { listTransactions } from '@/db/repositories/transactions';
 import { useDbQuery } from '@/hooks/useDbQuery';
@@ -21,9 +21,10 @@ export default function TransactionsScreen() {
   }
 
   return (
+    <View style={{ flex: 1 }}>
     <SectionList
       style={{ backgroundColor: t.bg }}
-      contentContainerStyle={{ padding: 16 }}
+      contentContainerStyle={{ padding: 16, paddingBottom: 110 }}
       sections={groups}
       keyExtractor={(x) => x.id}
       stickySectionHeadersEnabled={false}
@@ -48,5 +49,7 @@ export default function TransactionsScreen() {
       )}
       SectionSeparatorComponent={() => <View style={{ height: 6 }} />}
     />
+    <Fab onPress={() => router.push('/transaction/new')} />
+    </View>
   );
 }

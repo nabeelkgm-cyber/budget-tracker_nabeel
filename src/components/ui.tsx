@@ -231,7 +231,7 @@ export function EmptyText({ children }: { children: ReactNode }) {
 }
 
 const styles = StyleSheet.create({
-  content: { padding: 16, paddingBottom: 48 },
+  content: { padding: 16, paddingBottom: 110 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   card: { borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, marginBottom: 16, overflow: 'hidden' },
   sectionTitle: { fontSize: 12, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 8, marginTop: 4 },
@@ -282,5 +282,35 @@ export function ColorPicker({ value, onChange }: { value: string; onChange: (v: 
         </Pressable>
       ))}
     </View>
+  );
+}
+
+/** Large floating "+" button for adding a transaction. */
+export function Fab({ onPress, label = 'Add transaction' }: { onPress: () => void; label?: string }) {
+  const t = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        position: 'absolute',
+        right: 20,
+        bottom: 24,
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        backgroundColor: t.primary,
+        alignItems: 'center',
+        justifyContent: 'center',
+        opacity: pressed ? 0.85 : 1,
+        shadowColor: '#000',
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 4 },
+        elevation: 6,
+      })}>
+      <Ionicons name="add" size={34} color={t.onPrimary as string} />
+    </Pressable>
   );
 }

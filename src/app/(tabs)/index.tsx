@@ -1,15 +1,18 @@
 import { router } from 'expo-router';
-import { Text, View } from 'react-native';
-import { Button, Card, Divider, EmptyText, IconCircle, Loading, Row, Screen, SectionTitle } from '@/components/ui';
+import { useSQLiteContext } from 'expo-sqlite';
+import { Alert, Text, View } from 'react-native';
+import { Button, Card, Divider, EmptyText, Fab, IconCircle, Loading, Row, Screen, SectionTitle } from '@/components/ui';
 import { convertMinor, formatMinor } from '@/domain/money';
 import { listAccounts } from '@/db/repositories/accounts';
 import { listCurrencies } from '@/db/repositories/currencies';
+import { loadSampleData } from '@/db/seed/sampleData';
 import { useDbQuery } from '@/hooks/useDbQuery';
 import { useTheme } from '@/theme';
 import { BASE_CURRENCY } from '@/types';
 
 export default function HomeScreen() {
   const t = useTheme();
+  const db = useSQLiteContext();
   const { data } = useDbQuery(async (db) => ({
     accounts: await listAccounts(db),
     currencies: await listCurrencies(db),
@@ -21,10 +24,15 @@ export default function HomeScreen() {
     return (
       <Screen>
         <EmptyText>
-          Welcome! Add your first account (cash, bank or card), or load sample data from More → Settings to try the
-          app.
+          Welcome! To start, add an account (cash, bank or credit card). After that, use the round + button at the
+          bottom right to add expenses, income and transfers.
         </EmptyText>
-        <Button title="Add an account" onPress={() => router.push('/accounts/new')} />
+        <Button title="1. Add an account" onPress={() => router.push('/accounts/new')} />
+        <Button
+          title="Or try it with sample data"
+          kind="secondary"
+          onPress={() => loadSampleData(db).catch((e) => Alert.alert('Failed', String(e)))}
+        />
       </Screen>
     );
   }
@@ -59,6 +67,7 @@ export default function HomeScreen() {
   );
 
   return (
+    <View style={{ flex: 1 }}>
     <Screen>
       <Card style={{ padding: 20 }}>
         <Text style={{ color: t.textMuted, fontWeight: '600' }}>Net balance (all accounts)</Text>
@@ -78,5 +87,7 @@ export default function HomeScreen() {
         </>
       ) : null}
     </Screen>
+    <Fab onPress={() => router.push('/transaction/new')} />
+    </View>
   );
 }
