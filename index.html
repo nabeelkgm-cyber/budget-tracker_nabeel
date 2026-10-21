@@ -5,342 +5,357 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SIS Budget Tracker</title>
 <style>
+:root{--bg:#f3f4f8;--card:#fff;--ink:#222;--mute:#666;--line:#e3e5ec;--brand:#4b50c8;--ok:#1f9d55;--warn:#e08a00;--bad:#d32f2f}
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Segoe UI',sans-serif;background:linear-gradient(135deg,#667eea,#764ba2);min-height:100vh;padding:15px;color:#333}
-.login-container{display:flex;justify-content:center;align-items:center;min-height:calc(100vh - 30px)}
-.login-box{background:#fff;padding:40px;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.3);max-width:380px;width:100%;text-align:center}
-.login-box h1{color:#667eea;margin-bottom:8px}
-.login-box p{color:#666;margin-bottom:25px}
-.emoji{font-size:3.5em;margin-bottom:15px}
-.login-form input{width:100%;padding:14px;border:2px solid #e0e0e0;border-radius:10px;font-size:16px;margin-bottom:12px}
-.login-form input:focus{outline:none;border-color:#667eea}
-.login-form button{width:100%;padding:14px;font-size:16px;border-radius:10px}
-.error-msg{color:#eb3349;margin-top:12px;display:none}
-.container{max-width:1300px;margin:0 auto;background:#fff;border-radius:16px;box-shadow:0 15px 50px rgba(0,0,0,.3);overflow:hidden;display:none}
-.header{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;padding:20px;text-align:center;position:relative}
-.header h1{font-size:1.6em}
-.logout-btn{position:absolute;right:15px;top:15px;background:rgba(255,255,255,.2)}
-.filters{display:flex;justify-content:center;gap:8px;margin-top:12px;flex-wrap:wrap}
-.filters select{padding:8px 12px;border:none;border-radius:6px;font-size:14px}
-.content{padding:15px}
-.dashboard{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:15px}
-.card{padding:15px;border-radius:10px}
-.card h3{font-size:.75em;text-transform:uppercase;margin-bottom:5px;color:#555}
-.card .amount{font-size:1.2em;font-weight:700}
-.c1{background:linear-gradient(135deg,#a8edea,#fed6e3)}
-.c2{background:linear-gradient(135deg,#ffecd2,#fcb69f)}
-.c3{background:linear-gradient(135deg,#a1c4fd,#c2e9fb)}
-.c4{background:linear-gradient(135deg,#d4fc79,#96e6a1)}
-.section{background:#f8f9fa;padding:15px;border-radius:10px;margin-bottom:15px}
-.section h2{color:#667eea;margin-bottom:12px;font-size:1.2em;border-bottom:2px solid #667eea;padding-bottom:6px}
-.note{font-size:12px;color:#666;margin-bottom:10px;line-height:1.5}
-.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:12px}
-.form-group{display:flex;flex-direction:column}
-.form-group label{font-weight:600;color:#555;margin-bottom:3px;font-size:12px}
-.form-group input,.form-group select{padding:8px;border:2px solid #e0e0e0;border-radius:6px;font-size:13px}
-button{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-size:13px}
-button.green{background:linear-gradient(135deg,#56ab2f,#a8e063)}
-button.red,.del-btn{background:#eb3349}
-.del-btn{padding:4px 8px;font-size:10px}
-.row-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
-.tbl-wrap{overflow-x:auto}
-table{width:100%;border-collapse:collapse;font-size:12px;background:#fff}
-th{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;padding:8px;text-align:left;white-space:nowrap}
-td{padding:6px 8px;border-bottom:1px solid #e0e0e0;white-space:nowrap}
-td.n,th.n{text-align:right}
-tr.total td{font-weight:700;background:#eef0ff}
-.pos{color:#1b8a3a}.neg{color:#d32f2f}
-.pill{padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700}
-.ok{background:#e8f5e9;color:#2e7d32}.warn{background:#fff3e0;color:#e65100}.bad{background:#ffebee;color:#c62828}
-.bar{height:14px;background:#e0e0e0;border-radius:7px;overflow:hidden;min-width:70px}
-.bar>div{height:100%;color:#fff;font-size:9px;font-weight:700;text-align:center;line-height:14px}
-.low{background:#2fb36b}.medium{background:#f2994a}.high{background:#eb3349}
-.tabs{display:flex;gap:5px;margin-bottom:12px;flex-wrap:wrap}
-.tab{background:#e0e0e0;color:#555;font-size:12px;padding:8px 12px}
-.tab.active{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff}
-.tab-content{display:none}.tab-content.active{display:block}
-.list{max-height:360px;overflow:auto}
-@media(max-width:600px){.logout-btn{position:static;margin-top:10px}}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--ink);font-size:14px}
+header{background:linear-gradient(135deg,#4b50c8,#7a46b5);color:#fff;padding:16px 20px;display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+header h1{font-size:1.25rem}header small{opacity:.85}
+header select{padding:7px 10px;border-radius:6px;border:0;font-size:13px}
+main{max-width:1400px;margin:0 auto;padding:16px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.tab{background:#e3e5ec;color:#444;border:0;padding:9px 14px;border-radius:8px;cursor:pointer;font-size:13px}
+.tab.active{background:var(--brand);color:#fff}
+.view{display:none}.view.active{display:block}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:14px}
+.card{background:var(--card);border-radius:10px;padding:14px;border:1px solid var(--line)}
+.card h3{font-size:11px;text-transform:uppercase;color:var(--mute);letter-spacing:.04em;margin-bottom:6px}
+.card .big{font-size:1.25rem;font-weight:700}.card .sub{font-size:12px;color:var(--mute);margin-top:3px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px}
+.panel h2{font-size:1rem;margin-bottom:8px;color:var(--brand)}
+.note{color:var(--mute);font-size:12px;line-height:1.5;margin-bottom:8px}
+.banner{padding:10px 12px;border-radius:8px;margin-bottom:12px;font-size:13px}
+.banner.warn{background:#fff4e0;color:#8a5200}.banner.bad{background:#fdeaea;color:#a02020}.banner.ok{background:#e6f6ec;color:#17673a}
+button{background:var(--brand);color:#fff;border:0;border-radius:6px;padding:8px 14px;cursor:pointer;font-size:13px}
+button.sec{background:#e3e5ec;color:#333}button.go{background:var(--ok)}button.del{background:var(--bad)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;background:#fff;font-size:12.5px}
+th{background:#eef0fb;color:#333;text-align:left;padding:8px;white-space:nowrap;position:sticky;top:0}
+td{padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+th.n,td.n{text-align:right;font-variant-numeric:tabular-nums}
+tr.sec td{background:#f6f6fb;font-weight:700;color:var(--brand)}
+tr.tot td{font-weight:700;background:#eef0fb}
+tr.head{cursor:pointer}tr.head:hover td{background:#fafaff}
+tr.led td{background:#fcfcff;color:#555;font-size:12px}
+.pos{color:var(--ok)}.neg{color:var(--bad)}
+.pill{padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;display:inline-block}
+.pill.ok{background:#e6f6ec;color:#17673a}.pill.warn{background:#fff4e0;color:#8a5200}.pill.bad{background:#fdeaea;color:#a02020}
+.bar{position:relative;height:16px;background:#e3e5ec;border-radius:8px;min-width:110px;overflow:hidden}
+.bar i{position:absolute;left:0;top:0;bottom:0;border-radius:8px}
+.bar i.ok{background:#4cc07d}.bar i.warn{background:#f2b34a}.bar i.bad{background:#e45c5c}
+.bar b{position:absolute;inset:0;text-align:center;font-size:10px;line-height:16px;color:#111}
+.bar u{position:absolute;top:0;bottom:0;width:2px;background:#333;opacity:.55}
+input[type=number],input[type=text],select.f{padding:6px 8px;border:1px solid #ccd;border-radius:6px;font-size:13px}
+.chk{display:flex;gap:8px;align-items:flex-start;padding:4px 0}
+@media(max-width:600px){main{padding:10px}}
 </style>
 </head>
 <body>
-<div class="login-container" id="loginPage">
-  <div class="login-box">
-    <div class="emoji">📒</div>
-    <h1>SIS Budget Tracker</h1>
-    <p>Enter password to access</p>
-    <div class="login-form">
-      <input type="password" id="pwd" placeholder="Enter password" onkeypress="if(event.key==='Enter')login()">
-      <button onclick="login()">🔓 Login</button>
-      <p class="error-msg" id="err">❌ Incorrect password</p>
-    </div>
+<header>
+  <div><h1>📒 SIS Budget Tracker</h1><small id="sub">Approved budget vs ERP actuals</small></div>
+  <div class="row" style="margin:0"><label for="period" style="font-size:12px">Actuals as at</label><select id="period"></select></div>
+</header>
+<main>
+  <div class="tabs">
+    <button class="tab active" data-v="sum">Summary</button>
+    <button class="tab" data-v="bud">1. Approved Budget</button>
+    <button class="tab" data-v="act">2. ERP Actuals</button>
+    <button class="tab" data-v="map">3. Ledger Mapping</button>
+    <button class="tab" data-v="set">Settings &amp; Backup</button>
   </div>
-</div>
 
-<div class="container" id="app">
-  <div class="header">
-    <button class="logout-btn" onclick="logout()">🚪 Logout</button>
-    <h1>📒 SIS Budget Tracker</h1>
-    <div class="filters">
-      <select id="yr"></select>
-      <select id="per"></select>
-      <select id="dept"></select>
+  <section id="sum" class="view active"></section>
+
+  <section id="bud" class="view">
+    <div class="panel">
+      <h2>Approved budget</h2>
+      <p class="note">Choose the approved budget Excel file (the workbook with the <b>Budget Summary</b> sheet). Heads, annual amounts and control totals are read from it. Loading a new file replaces the current budget.</p>
+      <input type="file" id="budFile" accept=".xlsx,.xls,.csv">
+      <div id="budPending"></div>
     </div>
-  </div>
-  <div class="content">
-    <div class="dashboard">
-      <div class="card c1"><h3>Approved Budget</h3><div class="amount" id="dBud">0</div></div>
-      <div class="card c2"><h3>Tracker Actuals</h3><div class="amount" id="dAct">0</div></div>
-      <div class="card c3"><h3>ERP Actuals</h3><div class="amount" id="dErp">0</div></div>
-      <div class="card c4"><h3>Budget Remaining (ERP)</h3><div class="amount" id="dRem">0</div></div>
-      <div class="card c2"><h3>Tracker vs ERP Gap</h3><div class="amount" id="dGap">0</div></div>
+    <div class="panel"><h2>Budget heads loaded</h2><div id="budList"></div></div>
+  </section>
+
+  <section id="act" class="view">
+    <div class="panel">
+      <h2>Upload ERP Trial Balance</h2>
+      <p class="note">DC Netra &rarr; Trial Balance, from <b>01-04-2026</b> to the month end you want (year-to-date). Both the <b>.xls</b> download and an Excel-saved <b>.xlsx</b> work. Actuals are the movement (closing &minus; opening), never the closing balance. Uploading the same period again replaces it.</p>
+      <input type="file" id="tbFile" accept=".xls,.xlsx,.csv,.html,.htm">
+      <div id="tbPending"></div>
     </div>
-    <div class="tabs">
-      <button class="tab active" onclick="tab('cmp',this)">Budget vs Actual vs ERP</button>
-      <button class="tab" onclick="tab('bud',this)">Approved Budget</button>
-      <button class="tab" onclick="tab('act',this)">Actuals</button>
-      <button class="tab" onclick="tab('erp',this)">ERP Data</button>
-      <button class="tab" onclick="tab('data',this)">Backup</button>
+    <div class="panel"><h2>Posted periods</h2><div id="upList"></div></div>
+  </section>
+
+  <section id="map" class="view">
+    <div class="panel">
+      <h2>Ledger &rarr; budget head mapping</h2>
+      <p class="note">Every income, expense and capex ledger in the selected trial balance. Anything left unmapped shows as a separate line on the Summary so totals always reconcile.</p>
+      <div class="row">
+        <label><input type="checkbox" id="onlyUn"> Show unmapped only</label>
+        <input type="text" id="mapQ" placeholder="Search code or name">
+        <button class="sec" id="autoMap">Apply suggestions to unmapped</button>
+      </div>
+      <div class="tw" id="mapList"></div>
     </div>
+  </section>
 
-    <div id="cmpTab" class="tab-content active"><div class="section">
-      <h2>📊 Budget vs Actual vs ERP</h2>
-      <p class="note">Budget is for the selected period (year-to-date through the chosen month when a month is picked). "Gap" = Tracker − ERP; anything other than zero means your records and the ERP disagree. Variance = Budget − ERP actual (negative = overspent).</p>
-      <div class="tbl-wrap"><table><thead><tr><th>Dept</th><th>Account</th><th>Description</th><th class="n">Budget</th><th class="n">Tracker</th><th class="n">ERP</th><th class="n">Variance (vs ERP)</th><th>Used</th><th class="n">Gap</th><th>Status</th></tr></thead><tbody id="cmpBody"></tbody></table></div>
-      <div class="row-actions"><button class="green" onclick="exportCmp()">📥 Export comparison CSV</button></div>
-    </div></div>
-
-    <div id="budTab" class="tab-content"><div class="section">
-      <h2>✅ Approved Budget</h2>
-      <p class="note">Load the approved budget by CSV or add lines manually. CSV columns (header row required): <b>Department, Account, Description</b> and either <b>Annual</b> (spread evenly over 12 months) or <b>Jan … Dec</b>. Importing replaces the lines for the selected year.</p>
-      <div class="form-grid">
-        <div class="form-group"><label>Department</label><input id="bDept"></div>
-        <div class="form-group"><label>Account code</label><input id="bAcc"></div>
-        <div class="form-group"><label>Description</label><input id="bDesc"></div>
-        <div class="form-group"><label>Annual amount (QAR)</label><input type="number" id="bAmt" step="0.01"></div>
+  <section id="set" class="view">
+    <div class="panel">
+      <h2>Settings</h2>
+      <div class="row">
+        <label>Warning at % used <input type="number" id="sWarn" style="width:70px"></label>
+        <label>Breach at % used <input type="number" id="sBreach" style="width:70px"></label>
+        <label>FY start month (1-12) <input type="number" id="sFy" style="width:70px"></label>
       </div>
-      <div class="row-actions">
-        <button onclick="addBud()">Add line</button>
-        <button class="green" onclick="document.getElementById('budFile').click()">📤 Import budget CSV</button>
-        <button onclick="template('budget')">Download template</button>
-        <input type="file" id="budFile" accept=".csv" style="display:none" onchange="importBud(this)">
-      </div>
-      <div class="tbl-wrap list" style="margin-top:12px"><table><thead><tr><th>Dept</th><th>Account</th><th>Description</th><th class="n">Annual</th><th></th></tr></thead><tbody id="budBody"></tbody></table></div>
-    </div></div>
+      <div class="row"><label style="flex:1">Capex ledger codes (comma separated)<br><input type="text" id="sCapex" style="width:100%"></label></div>
+      <div class="row"><label style="flex:1">Budget heads excluded from tracking (comma separated text)<br><input type="text" id="sExcl" style="width:100%"></label></div>
+      <button id="saveSet">Save settings</button>
+    </div>
+    <div class="panel">
+      <h2>Backup</h2>
+      <p class="note">Everything is kept in this browser only (nothing is sent anywhere). Download a backup regularly and restore it on another computer if needed.</p>
+      <div class="row"><button class="go" id="bk">Download backup</button><button class="sec" id="rs">Restore backup</button><input type="file" id="rsFile" accept=".json" style="display:none"><button class="del" id="wipe">Erase all data</button></div>
+    </div>
+  </section>
+</main>
 
-    <div id="actTab" class="tab-content"><div class="section">
-      <h2>📝 Actuals (your own records)</h2>
-      <div class="form-grid">
-        <div class="form-group"><label>Date</label><input type="date" id="aDate"></div>
-        <div class="form-group"><label>Budget line</label><select id="aLine"></select></div>
-        <div class="form-group"><label>Amount (QAR)</label><input type="number" id="aAmt" step="0.01"></div>
-        <div class="form-group"><label>Reference / note</label><input id="aNote"></div>
-      </div>
-      <div class="row-actions"><button onclick="addAct()">Add actual</button></div>
-      <div class="tbl-wrap list" style="margin-top:12px"><table><thead><tr><th>Date</th><th>Dept</th><th>Account</th><th class="n">Amount</th><th>Reference</th><th></th></tr></thead><tbody id="actBody"></tbody></table></div>
-    </div></div>
-
-    <div id="erpTab" class="tab-content"><div class="section">
-      <h2>🔗 ERP Data</h2>
-      <p class="note">Export the posted transactions from the ERP as CSV with columns <b>Date, Department, Account, Amount, Reference</b> (dates as YYYY-MM-DD or DD/MM/YYYY). Importing replaces the ERP rows for the selected year, so you can re-import the latest export any time.</p>
-      <div class="row-actions">
-        <button class="green" onclick="document.getElementById('erpFile').click()">📤 Import ERP CSV</button>
-        <button onclick="template('erp')">Download template</button>
-        <input type="file" id="erpFile" accept=".csv" style="display:none" onchange="importErp(this)">
-      </div>
-      <div class="note" id="erpInfo" style="margin-top:10px"></div>
-      <div class="tbl-wrap list"><table><thead><tr><th>Date</th><th>Dept</th><th>Account</th><th class="n">Amount</th><th>Reference</th></tr></thead><tbody id="erpBody"></tbody></table></div>
-    </div></div>
-
-    <div id="dataTab" class="tab-content"><div class="section">
-      <h2>💾 Backup</h2>
-      <p class="note">Data is saved in this browser only. Download a backup regularly, and restore it on another device if needed.</p>
-      <div class="row-actions">
-        <button class="green" onclick="backup()">Download backup (JSON)</button>
-        <button onclick="document.getElementById('restFile').click()">Restore backup</button>
-        <input type="file" id="restFile" accept=".json" style="display:none" onchange="restore(this)">
-      </div>
-    </div></div>
-  </div>
-</div>
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="logic.js"></script>
 <script>
-const PWD="nabeel@123";
-const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-const STORE='sisBudgetTracker.v1';
-let D=loadStore();
-function loadStore(){try{const s=JSON.parse(localStorage.getItem(STORE));if(s&&s.years)return s}catch(e){}return{years:{}}}
-function save(){try{localStorage.setItem(STORE,JSON.stringify(D))}catch(e){alert('Could not save to browser storage')}}
-const $=id=>document.getElementById(id);
-const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const fmt=n=>(+n||0).toLocaleString(undefined,{minimumFractionDigits:0,maximumFractionDigits:0});
-const key=(d,a)=>`${String(d).trim().toLowerCase()}|${String(a).trim().toLowerCase()}`;
-function Y(){const y=$('yr').value;return D.years[y]||(D.years[y]={budget:[],actuals:[],erp:[]})}
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const f0 = n => (Math.round(n) || 0).toLocaleString('en-US');
+const f2 = n => (+n || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+const STORE = 'sisBudgetTracker.v2';
+let S = load(), pendingBud = null, pendingTb = null, open = {};
 
-function login(){if($('pwd').value===PWD){$('loginPage').style.display='none';$('app').style.display='block';init()}else{$('err').style.display='block';$('pwd').value=''}}
-function logout(){$('loginPage').style.display='flex';$('app').style.display='none';$('pwd').value=''}
+function load() {
+  try { const s = JSON.parse(localStorage.getItem(STORE)); if (s && s.settings) return s; } catch (e) {}
+  return {heads: [], budgetFile: '', mapping: {}, uploads: {}, period: '', settings: {...SIS.DEFAULT_SETTINGS}};
+}
+function save() { try { localStorage.setItem(STORE, JSON.stringify(S)); } catch (e) { alert('Could not save in this browser (storage full or blocked). Download a backup.'); } }
 
-function init(){
-  const cy=new Date().getFullYear();
-  $('yr').innerHTML=[cy-1,cy,cy+1].map(y=>`<option ${y===cy?'selected':''}>${y}</option>`).join('');
-  $('per').innerHTML='<option value="all">Full year</option>'+MONTHS.map((m,i)=>`<option value="${i}">YTD to ${m}</option>`).join('');
-  $('aDate').valueAsDate=new Date();
-  ['yr','per','dept'].forEach(i=>$(i).onchange=()=>{if(i==='yr')refreshDepts();render()});
-  refreshDepts();render();
+/* ---------- navigation ---------- */
+document.querySelectorAll('.tab').forEach(b => b.onclick = () => show(b.dataset.v));
+function show(v) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.v === v));
+  document.querySelectorAll('.view').forEach(x => x.classList.toggle('active', x.id === v));
+  render();
 }
-function refreshDepts(){
-  const y=Y(),ds=[...new Set(y.budget.map(b=>b.dept))].sort(),cur=$('dept').value;
-  $('dept').innerHTML='<option value="">All departments</option>'+ds.map(d=>`<option ${d===cur?'selected':''}>${esc(d)}</option>`).join('');
-}
+$('period').onchange = () => { S.period = $('period').value; save(); render(); };
 
-function parseDate(s){
-  s=String(s).trim();let m;
-  if(m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/))return new Date(+m[1],m[2]-1,+m[3]);
-  if(m=s.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})/))return new Date(+m[3],m[2]-1,+m[1]);
-  const d=new Date(s);return isNaN(d)?null:d;
-}
-function inPeriod(dateStr){
-  const d=parseDate(dateStr);if(!d)return false;
-  if(d.getFullYear()!==+$('yr').value)return false;
-  const p=$('per').value;return p==='all'||d.getMonth()<=+p;
-}
-function budgetFor(b){ // period budget for a line
-  const p=$('per').value;if(p==='all')return b.months.reduce((s,v)=>s+v,0);
-  return b.months.slice(0,+p+1).reduce((s,v)=>s+v,0);
-}
+function periods() { return Object.keys(S.uploads).sort(); }
+function curTb() { const p = periods(); if (!p.length) return null; if (!S.uploads[S.period]) S.period = p[p.length - 1]; return S.uploads[S.period]; }
 
-function compute(){
-  const y=Y(),dep=$('dept').value,rows={};
-  y.budget.forEach(b=>{if(dep&&b.dept!==dep)return;rows[key(b.dept,b.account)]={dept:b.dept,account:b.account,desc:b.desc,bud:budgetFor(b),act:0,erp:0,unmatched:false}});
-  const add=(list,f)=>list.forEach(t=>{if(!inPeriod(t.date))return;if(dep&&t.dept!==dep)return;const k=key(t.dept,t.account);
-    if(!rows[k])rows[k]={dept:t.dept,account:t.account,desc:'(not in approved budget)',bud:0,act:0,erp:0,unmatched:true};rows[k][f]+=t.amount});
-  add(y.actuals,'act');add(y.erp,'erp');
-  return Object.values(rows).sort((a,b)=>a.dept.localeCompare(b.dept)||a.account.localeCompare(b.account,undefined,{numeric:true}));
-}
-function status(r){
-  const gap=r.act-r.erp,p=r.bud?r.erp/r.bud*100:(r.erp?999:0);
-  if(r.unmatched)return['bad','Not budgeted'];
-  if(r.erp>r.bud)return['bad','Over budget'];
-  if(Math.abs(gap)>0.5)return['warn','Differs from ERP'];
-  if(p>=90)return['warn','Near limit'];
-  return['ok','OK'];
-}
-function render(){rDash();rCmp();rBud();rAct();rErp()}
-function rDash(){
-  const rs=compute(),s=f=>rs.reduce((a,r)=>a+r[f],0),bud=s('bud'),act=s('act'),erp=s('erp');
-  $('dBud').textContent=fmt(bud)+' QAR';$('dAct').textContent=fmt(act)+' QAR';$('dErp').textContent=fmt(erp)+' QAR';
-  $('dRem').textContent=fmt(bud-erp)+' QAR';$('dGap').textContent=fmt(act-erp)+' QAR';
-}
-function rCmp(){
-  const rs=compute();
-  if(!rs.length){$('cmpBody').innerHTML='<tr><td colspan="10" style="text-align:center;color:#999">Import the approved budget to get started</td></tr>';return}
-  const vc=v=>v>=0?'pos':'neg';
-  let h=rs.map(r=>{const v=r.bud-r.erp,g=r.act-r.erp,p=r.bud?r.erp/r.bud*100:(r.erp?100:0),cl=p>=100?'high':p>=80?'medium':'low',[sc,st]=status(r);
-    return`<tr><td>${esc(r.dept)}</td><td>${esc(r.account)}</td><td>${esc(r.desc)}</td><td class="n">${fmt(r.bud)}</td><td class="n">${fmt(r.act)}</td><td class="n">${fmt(r.erp)}</td><td class="n ${vc(v)}">${fmt(v)}</td><td><div class="bar"><div class="${cl}" style="width:${Math.min(p,100)}%">${p.toFixed(0)}%</div></div></td><td class="n ${Math.abs(g)>0.5?'neg':''}">${fmt(g)}</td><td><span class="pill ${sc}">${st}</span></td></tr>`}).join('');
-  const s=f=>rs.reduce((a,r)=>a+r[f],0);
-  h+=`<tr class="total"><td colspan="3">Total</td><td class="n">${fmt(s('bud'))}</td><td class="n">${fmt(s('act'))}</td><td class="n">${fmt(s('erp'))}</td><td class="n">${fmt(s('bud')-s('erp'))}</td><td></td><td class="n">${fmt(s('act')-s('erp'))}</td><td></td></tr>`;
-  $('cmpBody').innerHTML=h;
-}
-function rBud(){
-  const y=Y();
-  $('budBody').innerHTML=y.budget.length?y.budget.map((b,i)=>`<tr><td>${esc(b.dept)}</td><td>${esc(b.account)}</td><td>${esc(b.desc)}</td><td class="n">${fmt(b.months.reduce((s,v)=>s+v,0))}</td><td><button class="del-btn" onclick="delBud(${i})">X</button></td></tr>`).join(''):'<tr><td colspan="5" style="text-align:center;color:#999">No budget lines for this year</td></tr>';
-  $('aLine').innerHTML=y.budget.map(b=>`<option value="${esc(key(b.dept,b.account))}">${esc(b.dept)} – ${esc(b.account)} ${esc(b.desc)}</option>`).join('');
-}
-function rAct(){
-  const y=Y(),idx=y.actuals.map((t,i)=>[t,i]).sort((a,b)=>String(b[0].date).localeCompare(a[0].date));
-  $('actBody').innerHTML=idx.length?idx.map(([t,i])=>`<tr><td>${esc(t.date)}</td><td>${esc(t.dept)}</td><td>${esc(t.account)}</td><td class="n">${t.amount.toFixed(2)}</td><td>${esc(t.note)}</td><td><button class="del-btn" onclick="delAct(${i})">X</button></td></tr>`).join(''):'<tr><td colspan="6" style="text-align:center;color:#999">No actuals</td></tr>';
-}
-function rErp(){
-  const y=Y();
-  $('erpInfo').textContent=y.erp.length?`${y.erp.length} ERP rows loaded${y.erpLoaded?' (last import '+y.erpLoaded+')':''}.`:'No ERP data imported for this year.';
-  $('erpBody').innerHTML=y.erp.slice(0,500).map(t=>`<tr><td>${esc(t.date)}</td><td>${esc(t.dept)}</td><td>${esc(t.account)}</td><td class="n">${t.amount.toFixed(2)}</td><td>${esc(t.note)}</td></tr>`).join('');
-}
-
-function addBud(){
-  const d=$('bDept').value.trim(),a=$('bAcc').value.trim(),ds=$('bDesc').value.trim(),amt=+$('bAmt').value;
-  if(!d||!a||!amt)return alert('Department, account and annual amount are required');
-  const y=Y();if(y.budget.some(b=>key(b.dept,b.account)===key(d,a)))return alert('That department/account already exists');
-  y.budget.push({dept:d,account:a,desc:ds,months:Array(12).fill(amt/12)});
-  ['bDept','bAcc','bDesc','bAmt'].forEach(i=>$(i).value='');save();refreshDepts();render();
-}
-function delBud(i){if(!confirm('Delete this budget line?'))return;Y().budget.splice(i,1);save();refreshDepts();render()}
-function addAct(){
-  const k=$('aLine').value,dt=$('aDate').value,amt=+$('aAmt').value;
-  if(!k||!dt||!amt)return alert('Date, budget line and amount are required');
-  const b=Y().budget.find(b=>key(b.dept,b.account)===k);
-  Y().actuals.push({date:dt,dept:b.dept,account:b.account,amount:amt,note:$('aNote').value});
-  $('aAmt').value='';$('aNote').value='';save();render();
-}
-function delAct(i){if(!confirm('Delete?'))return;Y().actuals.splice(i,1);save();render()}
-
-// CSV
-function parseCSV(text){
-  const rows=[];let r=[],f='',q=false;text=text.replace(/^﻿/,'');
-  for(let i=0;i<text.length;i++){const c=text[i];
-    if(q){if(c==='"'){if(text[i+1]==='"'){f+='"';i++}else q=false}else f+=c}
-    else if(c==='"')q=true;
-    else if(c===','||c===';'||c==='\t'){r.push(f);f=''}
-    else if(c==='\n'||c==='\r'){if(c==='\r'&&text[i+1]==='\n')i++;r.push(f);f='';if(r.some(x=>x.trim()))rows.push(r);r=[]}
-    else f+=c}
-  r.push(f);if(r.some(x=>x.trim()))rows.push(r);return rows;
-}
-const num=v=>{const n=parseFloat(String(v??'').replace(/[, ]/g,'').replace(/^\((.*)\)$/,'-$1'));return isNaN(n)?0:n};
-function readFile(input,cb){const f=input.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{cb(r.result);input.value=''};r.readAsText(f)}
-function cols(head){const m={};head.forEach((h,i)=>m[h.trim().toLowerCase()]=i);return m}
-
-function importBud(input){readFile(input,txt=>{
-  const rows=parseCSV(txt);if(rows.length<2)return alert('File is empty');
-  const c=cols(rows[0]);
-  if(c.department==null||c.account==null)return alert('Header must include Department and Account');
-  const hasM=MONTHS.every(m=>c[m.toLowerCase()]!=null);
-  if(!hasM&&c.annual==null)return alert('Header needs Annual, or Jan … Dec');
-  const out={},bad=[];
-  rows.slice(1).forEach((r,n)=>{
-    const d=(r[c.department]||'').trim(),a=(r[c.account]||'').trim();if(!d&&!a)return;
-    if(!d||!a){bad.push(n+2);return}
-    const months=hasM?MONTHS.map(m=>num(r[c[m.toLowerCase()]])):Array(12).fill(num(r[c.annual])/12);
-    const k=key(d,a);
-    if(out[k])out[k].months=out[k].months.map((v,i)=>v+months[i]);
-    else out[k]={dept:d,account:a,desc:c.description!=null?(r[c.description]||'').trim():'',months};
+/* ---------- file reading ---------- */
+function readFile(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onerror = () => rej(new Error('Could not read the file.'));
+    r.onload = () => res(r.result);
+    r.readAsArrayBuffer(file);
   });
-  const list=Object.values(out);
-  if(!confirm(`Replace this year's budget with ${list.length} lines?`+(bad.length?`\n(Skipped rows missing dept/account: ${bad.join(', ')})`:'')))return;
-  Y().budget=list;save();refreshDepts();render();
-})}
-function importErp(input){readFile(input,txt=>{
-  const rows=parseCSV(txt);if(rows.length<2)return alert('File is empty');
-  const c=cols(rows[0]);
-  for(const h of['date','department','account','amount'])if(c[h]==null)return alert('Header must include Date, Department, Account, Amount');
-  const yr=+$('yr').value,out=[];let skipped=0,otherYear=0;
-  rows.slice(1).forEach(r=>{
-    const d=parseDate(r[c.date]||'');if(!d){skipped++;return}
-    if(d.getFullYear()!==yr){otherYear++;return}
-    out.push({date:`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`,dept:(r[c.department]||'').trim(),account:(r[c.account]||'').trim(),amount:num(r[c.amount]),note:c.reference!=null?(r[c.reference]||'').trim():''});
+}
+function rowsOf(buf, sheetPick) {
+  const wb = XLSX.read(buf, {type: 'array'});
+  const name = (sheetPick && wb.SheetNames.find(n => sheetPick.test(n))) || wb.SheetNames[0];
+  return XLSX.utils.sheet_to_json(wb.Sheets[name], {header: 1, defval: ''});
+}
+
+/* ---------- budget upload ---------- */
+$('budFile').onchange = async e => {
+  const f = e.target.files[0]; if (!f) return;
+  try {
+    const rows = rowsOf(await readFile(f), /budget summary/i);
+    const p = SIS.parseBudget(rows);
+    pendingBud = {file: f.name, ...p};
+  } catch (err) { pendingBud = null; $('budPending').innerHTML = `<div class="banner bad">${esc(err.message)}</div>`; return; }
+  const t = pendingBud.totals;
+  $('budPending').innerHTML = `<div class="banner ok">Read <b>${pendingBud.heads.length}</b> budget lines from ${esc(pendingBud.file)}.</div>
+    <div class="tw"><table><tr><th>Control total</th><th class="n">Amount (QAR)</th></tr>
+    <tr><td>Revenue</td><td class="n">${f2(t.income)}</td></tr><tr><td>Operating expenditure</td><td class="n">${f2(t.operating)}</td></tr>
+    <tr><td>Depreciation + income tax</td><td class="n">${f2(t.expense - t.operating)}</td></tr>
+    <tr><td>Net profit</td><td class="n">${f2(t.income - t.expense)}</td></tr><tr><td>Capex</td><td class="n">${f2(t.capex)}</td></tr></table></div>
+    <p class="note">Check these against the approved totals before loading.</p>
+    <div class="row"><button class="go" id="budOk">Load this budget</button></div>`;
+  $('budOk').onclick = () => {
+    if (S.heads.length && !confirm('Replace the current budget with this file?')) return;
+    S.heads = pendingBud.heads; S.budgetFile = pendingBud.file; pendingBud = null;
+    $('budPending').innerHTML = ''; $('budFile').value = ''; save(); render();
+  };
+};
+
+/* ---------- trial balance upload ---------- */
+$('tbFile').onchange = async e => {
+  const f = e.target.files[0]; if (!f) return;
+  try {
+    const buf = await readFile(f);
+    const text = new TextDecoder('utf-8').decode(buf.slice(0, 4000));
+    const rows = SIS.looksLikeHtml(text) ? SIS.htmlToRows(new TextDecoder('utf-8').decode(buf)) : rowsOf(buf);
+    pendingTb = {file: f.name, tb: SIS.parseTB(rows)};
+  } catch (err) { pendingTb = null; $('tbPending').innerHTML = `<div class="banner bad">${esc(err.message)}</div>`; return; }
+  renderPendingTb();
+};
+function renderPendingTb() {
+  const {tb, file} = pendingTb, c = tb.checks, m = SIS.monthsElapsed(tb.to, S.settings);
+  const mapping = {...SIS.suggestMapping(tb.ledgers, S.heads, S.settings), ...S.mapping};
+  const res = SIS.compute({heads: S.heads, mapping, settings: S.settings}, tb);
+  const r = res.recon, diff = SIS.round2(r.plNet - (r.mappedNet + r.unmappedNet + r.excludedNet));
+  const row = (ok, t) => `<div class="chk"><span class="pill ${ok ? 'ok' : 'bad'}">${ok ? 'PASS' : 'FAIL'}</span><span>${t}</span></div>`;
+  const periodOk = tb.from.slice(5) === String(S.settings.fyStartMonth).padStart(2, '0') + '-01';
+  const blocked = !c.openingBalanced || !c.closingBalanced || !S.heads.length;
+  $('tbPending').innerHTML = `
+    ${row(true, `Period <b>${tb.from}</b> to <b>${tb.to}</b> &mdash; ${m} month(s) of the financial year`)}
+    ${row(periodOk, periodOk ? 'Starts on the first day of the financial year (year-to-date TB)' : 'Does not start on the first day of the financial year. Use a YTD trial balance.')}
+    ${row(c.openingBalanced, `Opening debits = credits (${f2(c.totals[0])} / ${f2(c.totals[1])})`)}
+    ${row(c.closingBalanced, `Closing debits = credits (${f2(c.totals[2])} / ${f2(c.totals[3])})`)}
+    ${row(diff === 0, `Reconciliation: net P&amp;L per file <b>${f2(r.plNet)}</b> = mapped ${f2(r.mappedNet)} + unmapped ${f2(r.unmappedNet)} + excluded ${f2(r.excludedNet)} (difference ${f2(diff)})`)}
+    ${row(!res.unmapped.length, res.unmapped.length ? `${res.unmapped.length} ledger(s) not mapped to a budget head: ` + res.unmapped.map(u => `${esc(u.code)} ${esc(u.name)} (${f2(u.amount)})`).join('; ') + '. You can still post and map them afterwards.' : 'All ledgers are mapped')}
+    ${!S.heads.length ? '<div class="banner bad">Load the approved budget first (tab 1).</div>' : ''}
+    <div class="row"><button class="go" id="tbOk" ${blocked ? 'disabled' : ''}>Post actuals for ${tb.to}</button><button class="sec" id="tbNo">Cancel</button></div>`;
+  $('tbNo').onclick = () => { pendingTb = null; $('tbPending').innerHTML = ''; $('tbFile').value = ''; };
+  $('tbOk').onclick = () => {
+    if (S.uploads[tb.to] && !confirm(`Actuals for ${tb.to} are already posted. Replace them?`)) return;
+    const keep = {};   // keep only P&L and capex-relevant ledgers to stay small
+    S.uploads[tb.to] = {file, from: tb.from, to: tb.to, ledgers: tb.ledgers.filter(l => l.type !== 'bs' || SIS.capexSetOf(S.settings).has(l.code)), checks: tb.checks, postedOn: new Date().toISOString()};
+    Object.entries(mapping).forEach(([k, v]) => { if (!(k in S.mapping)) S.mapping[k] = v; });
+    S.period = tb.to; pendingTb = null; $('tbPending').innerHTML = ''; $('tbFile').value = ''; save(); show('sum');
+  };
+}
+
+/* ---------- renderers ---------- */
+function render() {
+  const ps = periods(), tb = curTb();
+  $('period').innerHTML = ps.length ? ps.map(p => `<option ${p === S.period ? 'selected' : ''}>${p}</option>`).join('') : '<option>no actuals yet</option>';
+  $('sub').textContent = S.heads.length ? `${S.budgetFile} · ${S.heads.length} budget lines` : 'Approved budget vs ERP actuals';
+  rSum(tb); rBudList(); rUploads(); rMap(tb); rSettings();
+}
+
+function status(r) { return `<span class="pill ${r.status}">${r.label}</span>`; }
+function bar(r) {
+  const p = r.pct === Infinity ? 100 : Math.min(r.pct, 100), cls = r.section === 'income' ? (r.status === 'warn' ? 'warn' : 'ok') : r.status;
+  const mark = r.section === 'income' && r.budget ? `<u style="left:${Math.min(r.ytdBudget / r.budget * 100, 100)}%" title="Year-to-date target"></u>` : '';
+  return `<div class="bar"><i class="${cls}" style="width:${p}%"></i>${mark}<b>${r.pct === Infinity ? '—' : r.pct.toFixed(0) + '%'}</b></div>`;
+}
+const vc = v => v >= 0 ? 'pos' : 'neg';
+
+function rSum(tb) {
+  const el = $('sum');
+  if (!S.heads.length || !tb) {
+    el.innerHTML = `<div class="panel"><h2>Get started</h2><p class="note">1. Load the <b>approved budget</b> (tab 1). &nbsp; 2. Upload the <b>ERP trial balance</b> (tab 2). &nbsp; 3. Check the <b>ledger mapping</b> (tab 3). The Summary then shows, for every budget head, the actual spend, % used and what is still available.</p>
+      <p class="note">Status: budget ${S.heads.length ? '✅ loaded' : '❌ not loaded'} · actuals ${tb ? '✅ loaded' : '❌ not loaded'}</p></div>`;
+    return;
+  }
+  const mapping = S.mapping, res = SIS.compute({heads: S.heads, mapping, settings: S.settings}, tb);
+  const rows = res.rows, sec = k => rows.filter(r => r.section === k);
+  const sum = (a, k) => a.reduce((s, r) => s + r[k], 0);
+  const opx = sec('expense').filter(r => !/^(depreciation|income tax)/i.test(r.name));
+  const inc = sec('income'), cap = sec('capex');
+  const opB = sum(opx, 'budget'), opA = sum(opx, 'actual'), inB = sum(inc, 'budget'), inA = sum(inc, 'actual');
+  const inY = sum(inc, 'ytdBudget'), opY = sum(opx, 'ytdBudget');
+  const flagged = rows.filter(r => r.section !== 'income' && (r.status === 'bad' || r.status === 'warn')).length;
+  const r = res.recon, diff = SIS.round2(r.plNet - (r.mappedNet + r.unmappedNet + r.excludedNet));
+  const card = (h, big, sub) => `<div class="card"><h3>${h}</h3><div class="big">${big}</div><div class="sub">${sub}</div></div>`;
+  let html = '';
+  if (res.unmapped.length) html += `<div class="banner warn">${res.unmapped.length} ledger(s) are not mapped to a budget head (net ${f2(r.unmappedNet)} QAR). Their amounts are shown under “Unmapped” below. <a href="#" onclick="show('map');return false">Map them</a></div>`;
+  html += `<div class="cards">
+    ${card('Income', f0(inA), `of ${f0(inB)} budget · ${(inB ? inA / inB * 100 : 0).toFixed(0)}% · YTD target ${f0(inY)}`)}
+    ${card('Operating expenditure', f0(opA), `of ${f0(opB)} budget · <b>${(opB ? opA / opB * 100 : 0).toFixed(1)}% used</b>`)}
+    ${card('Expenditure available', f0(opB - opA), `YTD budget ${f0(opY)} (${res.months}/12) · ${opY - opA >= 0 ? 'under' : 'over'} by ${f0(Math.abs(opY - opA))}`)}
+    ${card('Operating surplus', f0(inA - opA), `budget ${f0(inB - opB)} full year`)}
+    ${card('Capex', f0(sum(cap, 'actual')), `of ${f0(sum(cap, 'budget'))} · available ${f0(sum(cap, 'budget') - sum(cap, 'actual'))}`)}
+    ${card('Heads needing attention', flagged, 'near limit, over budget or unbudgeted')}</div>`;
+  html += `<div class="panel"><div class="row" style="margin-top:0"><b>Budget vs actual — year to date ${tb.from} to ${tb.to}</b>
+    <select class="f" id="fil"><option value="">All heads</option><option value="attn">Needs attention</option><option value="over">Over budget</option></select>
+    <button class="sec" id="csv">Export CSV</button></div>
+    <p class="note">Used % = actual ÷ full-year budget. Available = annual budget − actual. YTD variance is favourable (green) when income is above, or spend below, the pro-rata budget (${res.months}/12). Projection = YTD run-rate × 12. Click a head to see its ledgers.</p>
+    <div class="tw"><table><thead><tr><th>Budget head</th><th class="n">Annual budget</th><th class="n">YTD budget</th><th class="n">YTD actual</th><th>Used of annual</th><th class="n">Available</th><th class="n">YTD variance</th><th class="n">Projected year-end</th><th class="n">Projected vs budget</th><th>Status</th></tr></thead><tbody>`;
+  const f = $('fil') ? $('fil').value : '';
+  const keep = x => !f || (f === 'attn' ? x.status !== 'ok' && x.section !== 'income' : x.status === 'bad' && x.section !== 'income');
+  const groups = [['income', 'Income'], ['expense', 'Expenditure'], ['capex', 'Capital expenditure']];
+  groups.forEach(([k, label]) => {
+    const g = sec(k).filter(keep); if (!g.length) return;
+    html += `<tr class="sec"><td colspan="10">${label}</td></tr>`;
+    g.forEach(x => {
+      const lab = x.available < 0 && k !== 'income' ? 'neg' : '';
+      html += `<tr class="head" data-k="${esc(x.section + '|' + x.name)}"><td>${open[x.section + '|' + x.name] ? '▾' : '▸'} ${esc(x.name)}</td><td class="n">${f0(x.budget)}</td><td class="n">${f0(x.ytdBudget)}</td><td class="n">${f0(x.actual)}</td><td>${bar(x)}</td><td class="n ${lab}">${f0(x.available)}</td><td class="n ${vc(x.variance)}">${f0(x.variance)}</td><td class="n">${f0(x.projected)}</td><td class="n ${vc(x.projectedVar)}">${f0(x.projectedVar)}</td><td>${status(x)}</td></tr>`;
+      if (open[x.section + '|' + x.name]) x.ledgers.forEach(l => html += `<tr class="led"><td>&nbsp;&nbsp;&nbsp;${esc(l.code)} · ${esc(l.name)}</td><td></td><td></td><td class="n">${f0(l.amount)}</td><td colspan="6"></td></tr>`);
+    });
+    if (!f) html += `<tr class="tot"><td>Total ${label.toLowerCase()}</td><td class="n">${f0(sum(sec(k), 'budget'))}</td><td class="n">${f0(sum(sec(k), 'ytdBudget'))}</td><td class="n">${f0(sum(sec(k), 'actual'))}</td><td></td><td class="n">${f0(sum(sec(k), 'budget') - sum(sec(k), 'actual'))}</td><td></td><td class="n">${f0(sum(sec(k), 'projected'))}</td><td></td><td></td></tr>`;
   });
-  if(!confirm(`Replace ERP data for ${yr} with ${out.length} rows?`+(skipped?`\nUnreadable dates skipped: ${skipped}`:'')+(otherYear?`\nRows from other years ignored: ${otherYear}`:'')))return;
-  const y=Y();y.erp=out;y.erpLoaded=new Date().toLocaleString();save();render();
-})}
+  if (res.unmapped.length && !f) {
+    html += `<tr class="sec"><td colspan="10">Unmapped ledgers</td></tr>` + res.unmapped.map(u => `<tr><td>${esc(u.code)} · ${esc(u.name)} <span class="note">(${u.section})</span></td><td></td><td></td><td class="n">${f0(u.amount)}</td><td colspan="6"></td></tr>`).join('');
+  }
+  html += `</tbody></table></div>
+    <p class="note" style="margin-top:10px"><b>Reconciliation:</b> net P&amp;L per ERP file ${f2(r.plNet)} = mapped ${f2(r.mappedNet)} + unmapped ${f2(r.unmappedNet)} + excluded ${f2(r.excludedNet)} → difference <b class="${diff === 0 ? 'pos' : 'neg'}">${f2(diff)}</b></p></div>`;
+  el.innerHTML = html;
+  if (f) $('fil').value = f;
+  $('fil').onchange = () => rSum(tb);
+  $('csv').onclick = () => exportCsv(res, tb);
+  el.querySelectorAll('tr.head').forEach(t => t.onclick = () => { open[t.dataset.k] = !open[t.dataset.k]; rSum(tb); });
+}
 
-function download(name,text,type='text/csv'){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;a.click()}
-const q=v=>`"${String(v??'').replace(/"/g,'""')}"`;
-function template(kind){
-  if(kind==='budget')download('sis_budget_template.csv','Department,Account,Description,Annual\nFinance,5100,Office supplies,12000\nIT,5200,Software licences,60000\n');
-  else download('sis_erp_template.csv','Date,Department,Account,Amount,Reference\n2026-01-15,Finance,5100,850.00,INV-1001\n');
+function exportCsv(res, tb) {
+  const q = v => `"${String(v).replace(/"/g, '""')}"`;
+  let c = 'Section,Budget head,Annual budget,YTD budget,YTD actual,Used % of annual,Available,YTD variance,Projected year-end,Projected vs budget,Status\n';
+  res.rows.forEach(r => c += [r.section, q(r.name), r.budget.toFixed(2), r.ytdBudget.toFixed(2), r.actual.toFixed(2), r.pct === Infinity ? '' : r.pct.toFixed(1), r.available.toFixed(2), r.variance.toFixed(2), r.projected.toFixed(2), r.projectedVar.toFixed(2), q(r.label)].join(',') + '\n');
+  res.unmapped.forEach(u => c += ['unmapped', q(u.code + ' ' + u.name), '', '', u.amount.toFixed(2), '', '', '', '', '', 'Unmapped'].join(',') + '\n');
+  download(`sis_budget_vs_actual_${tb.to}.csv`, c, 'text/csv');
 }
-function exportCmp(){
-  const rs=compute();if(!rs.length)return alert('Nothing to export');
-  let c='Department,Account,Description,Budget,Tracker,ERP,Variance (Budget-ERP),Gap (Tracker-ERP),Status\n';
-  rs.forEach(r=>c+=[q(r.dept),q(r.account),q(r.desc),r.bud.toFixed(2),r.act.toFixed(2),r.erp.toFixed(2),(r.bud-r.erp).toFixed(2),(r.act-r.erp).toFixed(2),q(status(r)[1])].join(',')+'\n');
-  download(`sis_budget_comparison_${$('yr').value}_${$('per').value}.csv`,c);
-}
-function backup(){download('sis_budget_backup.json',JSON.stringify(D),'application/json')}
-function restore(input){readFile(input,txt=>{try{const s=JSON.parse(txt);if(!s.years)throw 0;if(!confirm('Replace ALL current data with this backup?'))return;D=s;save();refreshDepts();render()}catch(e){alert('Not a valid backup file')}})}
+function download(name, text, type) { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], {type})); a.download = name; a.click(); }
 
-function tab(n,el){
-  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  $(n+'Tab').classList.add('active');el.classList.add('active');
+function rBudList() {
+  if (!S.heads.length) { $('budList').innerHTML = '<p class="note">No budget loaded yet.</p>'; return; }
+  const t = SIS.budgetTotals(S.heads);
+  const g = [['income', 'Income'], ['expense', 'Expenditure'], ['capex', 'Capex']];
+  $('budList').innerHTML = `<p class="note">Revenue ${f2(t.income)} · Operating expenditure ${f2(t.operating)} · Net profit ${f2(t.income - t.expense)} · Capex ${f2(t.capex)}. Heads containing “${esc(S.settings.excludeHeads)}” are not tracked (change under Settings).</p><div class="tw"><table><tr><th>Section</th><th>Budget head</th><th class="n">Annual budget</th></tr>` +
+    S.heads.map(h => `<tr><td>${h.section}</td><td>${esc(h.name)}</td><td class="n">${f2(h.amount)}</td></tr>`).join('') + '</table></div>';
 }
+function rUploads() {
+  const ps = periods();
+  $('upList').innerHTML = ps.length ? '<div class="tw"><table><tr><th>Period to</th><th>File</th><th class="n">Ledgers</th><th>Posted</th><th></th></tr>' + ps.map(p => { const u = S.uploads[p];
+    return `<tr><td>${p}</td><td>${esc(u.file)}</td><td class="n">${u.ledgers.length}</td><td>${new Date(u.postedOn).toLocaleString()}</td><td><button class="del" onclick="delUp('${p}')">Delete</button></td></tr>`; }).join('') + '</table></div>' : '<p class="note">Nothing posted yet.</p>';
+}
+function delUp(p) { if (confirm(`Delete the actuals posted for ${p}?`)) { delete S.uploads[p]; save(); render(); } }
+
+function rMap(tb) {
+  if (!tb) { $('mapList').innerHTML = '<p class="note">Upload a trial balance first.</p>'; return; }
+  const only = $('onlyUn').checked, q = $('mapQ').value.toLowerCase(), cap = SIS.capexSetOf(S.settings);
+  const list = tb.ledgers.filter(l => (l.type !== 'bs' || cap.has(l.code)) && (!only || !S.mapping[l.code]) && (!q || (l.code + ' ' + l.name).toLowerCase().includes(q)));
+  $('mapList').innerHTML = '<table><tr><th>Code</th><th>Ledger</th><th>Type</th><th class="n">YTD amount</th><th>Budget head</th></tr>' + list.map(l => {
+    const sec = l.type === 'bs' ? 'capex' : l.type, cur = S.mapping[l.code] || '';
+    const opts = S.heads.filter(h => h.section === sec).map(h => `<option ${h.name === cur ? 'selected' : ''}>${esc(h.name)}</option>`).join('');
+    return `<tr><td>${esc(l.code)}</td><td>${esc(l.name)}</td><td>${sec}</td><td class="n">${f2(SIS.movement(l, cap))}</td><td><select class="f" data-c="${esc(l.code)}"><option value="">— unmapped —</option><option value="__exclude" ${cur === '__exclude' ? 'selected' : ''}>— Exclude from tracking —</option>${opts}</select></td></tr>`;
+  }).join('') + '</table>';
+  $('mapList').querySelectorAll('select').forEach(s => s.onchange = () => { if (s.value) S.mapping[s.dataset.c] = s.value; else delete S.mapping[s.dataset.c]; save(); rSum(tb); });
+}
+$('onlyUn').onchange = () => rMap(curTb());
+$('mapQ').oninput = () => rMap(curTb());
+$('autoMap').onclick = () => {
+  const tb = curTb(); if (!tb) return;
+  const sug = SIS.suggestMapping(tb.ledgers, S.heads, S.settings);
+  Object.entries(sug).forEach(([k, v]) => { if (!S.mapping[k]) S.mapping[k] = v; });
+  save(); render();
+};
+
+function rSettings() {
+  const s = S.settings; $('sWarn').value = s.warnPct; $('sBreach').value = s.breachPct; $('sFy').value = s.fyStartMonth; $('sCapex').value = s.capexLedgers; $('sExcl').value = s.excludeHeads;
+}
+$('saveSet').onclick = () => {
+  S.settings = {warnPct: +$('sWarn').value || 80, breachPct: +$('sBreach').value || 100, fyStartMonth: Math.min(12, Math.max(1, +$('sFy').value || 4)), capexLedgers: $('sCapex').value, excludeHeads: $('sExcl').value};
+  save(); render(); alert('Settings saved');
+};
+$('bk').onclick = () => download('sis_budget_tracker_backup.json', JSON.stringify(S), 'application/json');
+$('rs').onclick = () => $('rsFile').click();
+$('rsFile').onchange = async e => {
+  const f = e.target.files[0]; if (!f) return;
+  try { const s = JSON.parse(new TextDecoder().decode(await readFile(f))); if (!s.settings || !s.uploads) throw 0; if (!confirm('Replace ALL current data with this backup?')) return; S = s; save(); render(); }
+  catch (err) { alert('That is not a valid backup file.'); }
+  e.target.value = '';
+};
+$('wipe').onclick = () => { if (confirm('Erase the budget, actuals and mapping from this browser?')) { localStorage.removeItem(STORE); S = load(); render(); } };
+
+render();
 </script>
 </body>
 </html>
