@@ -401,11 +401,15 @@ export const BACKUP_TABLES = [
   'currencies',
   'accounts',
   'categories',
+  'account_identifiers',
+  'merchant_rules',
   'transactions',
   'budgets',
   'budget_alerts_sent',
   'recurring_rules',
   'recurring_due',
+  'import_batches',
+  'import_items',
 ] as const;
 
 type Cell = string | number | null;

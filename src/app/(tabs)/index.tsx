@@ -8,6 +8,7 @@ import { formatPercent, savingsOf, savingsRatePercent } from '@/domain/summary';
 import { convertMinor, formatMinor } from '@/domain/money';
 import { listAccounts } from '@/db/repositories/accounts';
 import { getMonthBudget } from '@/db/repositories/budgets';
+import { pendingCount } from '@/db/repositories/inbox';
 import { listPendingDue } from '@/db/repositories/recurring';
 import { listCurrencies } from '@/db/repositories/currencies';
 import { currentMonth } from '@/domain/budget';
@@ -30,10 +31,11 @@ export default function HomeScreen() {
       recent: await listTransactions(db, { limit: 5 }),
       budget: await getMonthBudget(db, currentMonth()),
       pending: await listPendingDue(db),
+      inbox: await pendingCount(db),
     };
   });
   if (!data) return <Loading />;
-  const { accounts, currencies, month, recent, budget, pending } = data;
+  const { accounts, currencies, month, recent, budget, pending, inbox } = data;
   const savings = savingsOf(month.incomeMinor, month.expenseMinor);
   const rate = savingsRatePercent(month.incomeMinor, month.expenseMinor);
 
@@ -89,6 +91,17 @@ export default function HomeScreen() {
   return (
     <View style={{ flex: 1 }}>
     <Screen>
+      {inbox > 0 ? (
+        <Card>
+          <Row
+            onPress={() => router.push('/inbox')}
+            left={<IconCircle icon="download" color="#F97316" />}
+            title={`${inbox} bank item${inbox === 1 ? '' : 's'} to review`}
+            subtitle="From statements or SMS. Approve to add them."
+          />
+        </Card>
+      ) : null}
+
       {pending.length > 0 ? (
         <>
           <SectionTitle>Recurring items waiting</SectionTitle>

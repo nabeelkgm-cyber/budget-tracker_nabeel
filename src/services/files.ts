@@ -34,3 +34,11 @@ export async function pickTextFile(): Promise<{ name: string; text: string } | n
   const text = await new File(asset.uri).text();
   return { name: asset.name, text };
 }
+
+/** Lets the user choose any file and returns its bytes, or null if they cancelled. */
+export async function pickFileBytes(): Promise<{ name: string; bytes: Uint8Array } | null> {
+  const result = await DocumentPicker.getDocumentAsync({ type: '*/*', copyToCacheDirectory: true, multiple: false });
+  if (result.canceled || !result.assets?.[0]) return null;
+  const asset = result.assets[0];
+  return { name: asset.name, bytes: await new File(asset.uri).bytes() };
+}

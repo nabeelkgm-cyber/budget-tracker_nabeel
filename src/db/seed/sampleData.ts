@@ -22,6 +22,10 @@ import { seedDefaults } from './defaults';
 export async function eraseAllData(db: Db, reseedBase?: string): Promise<void> {
   await atomic(db, async () => {
     await db.execAsync(`
+      DELETE FROM import_items;
+      DELETE FROM import_batches;
+      DELETE FROM merchant_rules;
+      DELETE FROM account_identifiers;
       DELETE FROM recurring_due;
       DELETE FROM recurring_rules;
       DELETE FROM budget_alerts_sent;

@@ -1,10 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { Text } from 'react-native';
 import { Card, Divider, IconCircle, Row, Screen } from '@/components/ui';
+import { pendingCount } from '@/db/repositories/inbox';
+import { useDbQuery } from '@/hooks/useDbQuery';
 import { useTheme } from '@/theme';
 
 export default function MoreScreen() {
   const t = useTheme();
+  const { data: waiting } = useDbQuery(pendingCount);
   const chevron = <Ionicons name="chevron-forward" size={18} color={t.textMuted} />;
   return (
     <Screen>
@@ -15,6 +19,19 @@ export default function MoreScreen() {
           subtitle="Cash, bank accounts, credit cards"
           right={chevron}
           onPress={() => router.push('/accounts')}
+        />
+        <Divider />
+        <Row
+          left={<IconCircle icon="download" color="#F97316" />}
+          title="Review inbox"
+          subtitle="Bank statements and SMS waiting for approval"
+          right={
+            <>
+              {waiting ? <Text style={{ color: t.primary, fontWeight: '800' }}>{waiting}</Text> : null}
+              {chevron}
+            </>
+          }
+          onPress={() => router.push('/inbox')}
         />
         <Divider />
         <Row

@@ -6,6 +6,7 @@ import { Button, Chip, ChipRow, ColorPicker, Field, IconPicker, Label, Loading, 
 import { minorToInput, parseAmountToMinor, zeroText } from '@/domain/money';
 import { createAccount, getAccount, setAccountArchived, updateAccount } from '@/db/repositories/accounts';
 import { listCurrencies } from '@/db/repositories/currencies';
+import { getAccountIdentifiers, setAccountIdentifiers } from '@/db/repositories/inbox';
 import { useDbQuery } from '@/hooks/useDbQuery';
 import { COLOR_CHOICES, useTheme } from '@/theme';
 import type { AccountType } from '@/types';
@@ -41,6 +42,8 @@ export default function AccountForm() {
   const [icon, setIcon] = useState('business');
   const [color, setColor] = useState(COLOR_CHOICES[2]);
   const [archived, setArchived] = useState(false);
+  const [last4Text, setLast4Text] = useState('');
+  const [senderText, setSenderText] = useState('');
 
   useEffect(() => {
     if (isNew) return;
@@ -57,7 +60,11 @@ export default function AccountForm() {
       setIcon(a.icon);
       setColor(a.color);
       setArchived(!!a.is_archived);
-      setLoaded(true);
+      getAccountIdentifiers(db, id).then((ids) => {
+        setLast4Text(ids.last4.join(', '));
+        setSenderText(ids.senders.join(', '));
+        setLoaded(true);
+      });
     });
   }, [db, id, isNew]);
 
@@ -83,8 +90,14 @@ export default function AccountForm() {
       color,
     };
     try {
-      if (isNew) await createAccount(db, { ...input, currency });
-      else await updateAccount(db, id, input);
+      const ids = { last4: last4Text.split(/[,\s]+/).filter(Boolean), senders: senderText.split(',').filter((x) => x.trim()) };
+      if (isNew) {
+        const newId = await createAccount(db, { ...input, currency });
+        await setAccountIdentifiers(db, newId, ids);
+      } else {
+        await updateAccount(db, id, input);
+        await setAccountIdentifiers(db, id, ids);
+      }
       router.back();
     } catch (e) {
       Alert.alert('Could not save', String(e instanceof Error ? e.message : e));
@@ -158,6 +171,23 @@ export default function AccountForm() {
           </Text>
         </>
       ) : null}
+
+      <Field
+        label="Card / account last 4 digits (optional)"
+        value={last4Text}
+        onChangeText={setLast4Text}
+        placeholder="e.g. 1234, 5678"
+        autoCapitalize="none"
+      />
+      <Field
+        label="SMS sender names (optional)"
+        value={senderText}
+        onChangeText={setSenderText}
+        placeholder="e.g. CBQ, HDFCBK"
+      />
+      <Text style={{ color: t.textMuted, fontSize: 12, marginTop: -6, marginBottom: 14 }}>
+        Used to recognise which account a pasted bank SMS belongs to.
+      </Text>
 
       <Label>Icon</Label>
       <IconPicker value={icon} color={color} onChange={setIcon} />

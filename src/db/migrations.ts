@@ -214,6 +214,66 @@ const MIGRATIONS: Migration[] = [
     WHERE recurring_id IS NOT NULL AND deleted_at IS NULL;
   `,
   },
+
+  // v6: review inbox for SMS / statement lines, duplicate protection, merchant memory
+  {
+    sql: `
+  -- Card / account digits and SMS sender names, to recognise which account a message is about.
+  CREATE TABLE account_identifiers (
+    id         TEXT PRIMARY KEY,
+    account_id TEXT NOT NULL REFERENCES accounts(id),
+    kind       TEXT NOT NULL CHECK (kind IN ('last4','sender')),
+    value      TEXT NOT NULL,
+    UNIQUE (account_id, kind, value)
+  );
+
+  -- "LULU HYPERMARKET" -> Groceries, learned from the user's own choices.
+  CREATE TABLE merchant_rules (
+    id          TEXT PRIMARY KEY,
+    key         TEXT NOT NULL UNIQUE,
+    category_id TEXT NOT NULL REFERENCES categories(id),
+    type        TEXT NOT NULL CHECK (type IN ('expense','income')),
+    hits        INTEGER NOT NULL DEFAULT 0,
+    created_at  TEXT NOT NULL,
+    updated_at  TEXT NOT NULL
+  );
+
+  CREATE TABLE import_batches (
+    id         TEXT PRIMARY KEY,
+    source     TEXT NOT NULL CHECK (source IN ('sms','csv','xlsx','pdf')),
+    file_name  TEXT,
+    file_hash  TEXT,
+    account_id TEXT REFERENCES accounts(id),
+    created_at TEXT NOT NULL
+  );
+  CREATE UNIQUE INDEX uq_batch_hash ON import_batches(file_hash) WHERE file_hash IS NOT NULL;
+
+  CREATE TABLE import_items (
+    id                    TEXT PRIMARY KEY,
+    batch_id              TEXT NOT NULL REFERENCES import_batches(id),
+    status                TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','approved','rejected','duplicate')),
+    account_id            TEXT NOT NULL REFERENCES accounts(id),
+    date                  TEXT NOT NULL,
+    description           TEXT NOT NULL,
+    direction             TEXT NOT NULL CHECK (direction IN ('debit','credit')),
+    amount_minor          INTEGER NOT NULL CHECK (amount_minor > 0),
+    reference             TEXT,
+    balance_minor         INTEGER,
+    raw                   TEXT NOT NULL DEFAULT '',
+    fingerprint           TEXT NOT NULL,
+    suggested_type        TEXT,
+    suggested_category_id TEXT REFERENCES categories(id),
+    dup_kind              TEXT NOT NULL DEFAULT 'none' CHECK (dup_kind IN ('none','possible')),
+    dup_txn_id            TEXT,
+    resolved_txn_id       TEXT,
+    created_at            TEXT NOT NULL,
+    updated_at            TEXT NOT NULL
+  );
+  CREATE INDEX idx_item_status ON import_items(status);
+  CREATE INDEX idx_item_fp ON import_items(fingerprint);
+  CREATE INDEX idx_txn_external ON transactions(external_ref);
+  `,
+  },
 ];
 
 export const LATEST_VERSION = MIGRATIONS.length;

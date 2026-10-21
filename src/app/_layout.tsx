@@ -28,6 +28,10 @@ export default function RootLayout() {
             <Stack.Screen name="accounts/[id]" options={{ title: 'Account' }} />
             <Stack.Screen name="categories/index" options={{ title: 'Categories' }} />
             <Stack.Screen name="categories/[id]" options={{ title: 'Category' }} />
+            <Stack.Screen name="inbox/index" options={{ title: 'Review inbox' }} />
+            <Stack.Screen name="inbox/[id]" options={{ title: 'Review' }} />
+            <Stack.Screen name="statement" options={{ title: 'Import statement' }} />
+            <Stack.Screen name="sms" options={{ title: 'Paste bank SMS' }} />
             <Stack.Screen name="data" options={{ title: 'Backup & data' }} />
             <Stack.Screen name="lock" options={{ title: 'App lock' }} />
             <Stack.Screen name="settings" options={{ title: 'Settings' }} />
