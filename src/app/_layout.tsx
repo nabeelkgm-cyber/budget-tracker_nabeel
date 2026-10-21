@@ -14,7 +14,7 @@ export default function RootLayout() {
       <Suspense fallback={<Loading />}>
         <SQLiteProvider databaseName={DB_NAME} onInit={initDatabase} useSuspense>
           <AppStartup />
-          <Stack>
+          <Stack screenOptions={{ headerBackButtonDisplayMode: 'minimal' }}>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="transaction/[id]" options={{ presentation: 'modal', title: 'Transaction' }} />
             <Stack.Screen name="set-budget/[categoryId]" options={{ presentation: 'modal', title: 'Budget' }} />
