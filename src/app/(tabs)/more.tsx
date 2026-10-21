@@ -18,6 +18,14 @@ export default function MoreScreen() {
         />
         <Divider />
         <Row
+          left={<IconCircle icon="repeat" color="#14B8A6" />}
+          title="Recurring"
+          subtitle="Rent, salary, subscriptions, remittances"
+          right={chevron}
+          onPress={() => router.push('/recurring')}
+        />
+        <Divider />
+        <Row
           left={<IconCircle icon="pricetags" color="#F59E0B" />}
           title="Categories"
           subtitle="Presets, sub-categories, icons, colours"

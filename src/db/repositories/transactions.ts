@@ -146,8 +146,8 @@ async function insertRow(db: Db, id: string, input: TransactionInput, extras: In
   await db.runAsync(
     `INSERT INTO transactions (id,type,date,account_id,amount_minor,fx_rate_e8,base_amount_minor,
        category_id,to_account_id,to_amount_minor,payment_method,note,linked_txn_id,source,external_ref,
-       fingerprint,created_at,updated_at)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+       fingerprint,recurring_id,recurring_due_date,created_at,updated_at)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
     [
       id,
       input.type,
@@ -165,6 +165,8 @@ async function insertRow(db: Db, id: string, input: TransactionInput, extras: In
       input.source ?? 'manual',
       input.externalRef ?? null,
       input.fingerprint ?? null,
+      input.recurringId ?? null,
+      input.recurringDueDate ?? null,
       now,
       now,
     ],

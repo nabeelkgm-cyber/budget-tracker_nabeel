@@ -21,7 +21,7 @@ export function TransactionRow({ t, onPress }: { t: Txn; onPress: () => void }) 
     : t.parent_category_name
       ? `${t.parent_category_name} › ${t.category_name}`
       : (t.category_name ?? 'Uncategorised');
-  const subtitle = [t.note, isTransfer ? 'Transfer' : t.account_name, METHOD_LABEL[t.payment_method]]
+  const subtitle = [t.note, isTransfer ? 'Transfer' : t.account_name, METHOD_LABEL[t.payment_method], t.recurring_id ? 'Recurring' : '']
     .filter(Boolean)
     .join(' · ');
   const sign = t.type === 'income' ? '+' : t.type === 'expense' ? '-' : '';

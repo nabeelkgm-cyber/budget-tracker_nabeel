@@ -10,7 +10,8 @@ import {
 import { createCategory, listCategories, setCategoryArchived } from '@/db/repositories/categories';
 import { setCurrencyRate } from '@/db/repositories/currencies';
 import { createTransaction, deleteTransaction, updateTransaction } from '@/db/repositories/transactions';
-import { loadSampleData } from '@/db/seed/sampleData';
+import { listPendingDue, listRecurringRules } from '@/db/repositories/recurring';
+import { eraseAllData, loadSampleData } from '@/db/seed/sampleData';
 import type { Db } from '@/db/types';
 import { currentMonth } from '@/domain/budget';
 import type { TransactionInput } from '@/types';
@@ -261,5 +262,19 @@ describe('sample data month', () => {
       expect(r.availableMinor).toBeGreaterThan(0);
       expect(r.spentMinor).toBeGreaterThanOrEqual(0);
     }
+  });
+});
+
+describe('sample data can be reloaded and erased', () => {
+  it('loads twice, includes recurring items and a waiting reminder, and erases cleanly', async () => {
+    await loadSampleData(db);
+    await loadSampleData(db); // would fail on leftover recurring rows if they were not cleared
+    const rules = await listRecurringRules(db);
+    expect(rules.map((r) => r.name).sort()).toEqual(['Internet bill', 'Rent', 'Salary', 'Weekly groceries']);
+    expect(rules.find((r) => r.name === 'Rent')!.mode).toBe('auto');
+    expect((await listPendingDue(db)).map((p) => p.name)).toEqual(['Internet bill']);
+    await eraseAllData(db);
+    expect(await listRecurringRules(db)).toEqual([]);
+    expect(await listPendingDue(db)).toEqual([]);
   });
 });

@@ -62,6 +62,8 @@ export interface Transaction {
   recurring_id: string | null;
   /** For a transfer fee: the id of the transfer it belongs to. */
   linked_txn_id: string | null;
+  /** For an entry made by a recurring rule: the due date it was made for. */
+  recurring_due_date: string | null;
   source: string;
   external_ref: string | null;
   fingerprint: string | null;
@@ -94,4 +96,7 @@ export interface TransactionInput {
   fingerprint?: string | null;
   /** Transfers only: optional fee charged on the From account, saved as a Bank Charges expense. */
   feeMinor?: number | null;
+  /** Set by recurring rules so each occurrence is only ever created once. */
+  recurringId?: string | null;
+  recurringDueDate?: string | null;
 }

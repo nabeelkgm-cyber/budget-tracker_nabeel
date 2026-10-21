@@ -13,7 +13,8 @@
     "scheme": "budgettracker",
     "plugins": [
       "expo-router",
-      "expo-sqlite"
+      "expo-sqlite",
+      "expo-notifications"
     ]
   }
 }

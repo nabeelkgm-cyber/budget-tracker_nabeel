@@ -8,12 +8,13 @@ import { formatPercent, savingsOf, savingsRatePercent } from '@/domain/summary';
 import { convertMinor, formatMinor } from '@/domain/money';
 import { listAccounts } from '@/db/repositories/accounts';
 import { getMonthBudget } from '@/db/repositories/budgets';
+import { listPendingDue } from '@/db/repositories/recurring';
 import { listCurrencies } from '@/db/repositories/currencies';
 import { currentMonth } from '@/domain/budget';
 import { listTransactions, summarizeTransactions } from '@/db/repositories/transactions';
 import { loadSampleData } from '@/db/seed/sampleData';
 import { useDbQuery } from '@/hooks/useDbQuery';
-import { monthLabel, monthRange, today } from '@/lib/dates';
+import { monthLabel, monthRange, prettyDate, today } from '@/lib/dates';
 import { useTheme } from '@/theme';
 import { BASE_CURRENCY } from '@/types';
 
@@ -28,10 +29,11 @@ export default function HomeScreen() {
       month: await summarizeTransactions(db, { dateFrom: from, dateTo: to }),
       recent: await listTransactions(db, { limit: 5 }),
       budget: await getMonthBudget(db, currentMonth()),
+      pending: await listPendingDue(db),
     };
   });
   if (!data) return <Loading />;
-  const { accounts, currencies, month, recent, budget } = data;
+  const { accounts, currencies, month, recent, budget, pending } = data;
   const savings = savingsOf(month.incomeMinor, month.expenseMinor);
   const rate = savingsRatePercent(month.incomeMinor, month.expenseMinor);
 
@@ -87,6 +89,28 @@ export default function HomeScreen() {
   return (
     <View style={{ flex: 1 }}>
     <Screen>
+      {pending.length > 0 ? (
+        <>
+          <SectionTitle>Recurring items waiting</SectionTitle>
+          <Card>
+            {pending.slice(0, 3).map((p, i) => (
+              <View key={p.id}>
+                {i > 0 ? <Divider /> : null}
+                <Row
+                  onPress={() => router.push('/recurring')}
+                  left={<IconCircle icon="alarm" color="#F59E0B" />}
+                  title={p.name}
+                  subtitle={`Due ${prettyDate(p.due_date)}`}
+                  right={<Text style={{ color: t.text, fontWeight: '700' }}>{formatMinor(p.amount_minor, p.currency)}</Text>}
+                />
+              </View>
+            ))}
+            <Divider />
+            <Row title={pending.length > 3 ? `Review all ${pending.length}` : 'Add or skip'} onPress={() => router.push('/recurring')} />
+          </Card>
+        </>
+      ) : null}
+
       <Card style={{ padding: 20 }}>
         <Text style={{ color: t.textMuted, fontWeight: '700', marginBottom: 14 }}>{monthLabel(today())}</Text>
         <View style={{ flexDirection: 'row' }}>

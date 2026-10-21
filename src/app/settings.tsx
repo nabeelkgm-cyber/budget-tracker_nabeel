@@ -1,11 +1,18 @@
+import * as Linking from 'expo-linking';
 import { useSQLiteContext } from 'expo-sqlite';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Alert, Text } from 'react-native';
 import { Button, Card, Field, Loading, Screen, SectionTitle } from '@/components/ui';
 import { foreignPerBaseToRateE8, rateE8ToForeignPerBase } from '@/domain/money';
 import { listCurrencies, setCurrencyRate } from '@/db/repositories/currencies';
 import { eraseAllData, loadSampleData } from '@/db/seed/sampleData';
 import { useDbQuery } from '@/hooks/useDbQuery';
+import {
+  ensureNotificationPermission,
+  notificationsAllowed,
+  rescheduleReminders,
+  sendTestNotification,
+} from '@/services/notifications';
 import { useTheme } from '@/theme';
 import { BASE_CURRENCY } from '@/types';
 
@@ -15,6 +22,11 @@ export default function SettingsScreen() {
   const { data: currencies } = useDbQuery(listCurrencies);
   const inr = currencies?.find((c) => c.code === 'INR');
   const [rate, setRate] = useState('');
+  const [notifOn, setNotifOn] = useState<boolean | null>(null);
+  const refreshNotif = useCallback(() => notificationsAllowed().then(setNotifOn), []);
+  useEffect(() => {
+    refreshNotif();
+  }, [refreshNotif]);
 
   useEffect(() => {
     if (inr) setRate(rateE8ToForeignPerBase(inr.rate_to_base_e8));
@@ -50,6 +62,45 @@ export default function SettingsScreen() {
           changing this never alters past figures. Reports and budgets are in {BASE_CURRENCY}.
         </Text>
         <Button title="Save rate" onPress={saveRate} />
+      </Card>
+
+      <SectionTitle>Reminders</SectionTitle>
+      <Card style={{ padding: 16 }}>
+        <Text style={{ color: t.textMuted, fontSize: 12, marginBottom: 12 }}>
+          {notifOn === null
+            ? 'Checking…'
+            : notifOn
+              ? 'Notifications are on. Due-date reminders for recurring items arrive at 9:00.'
+              : 'Notifications are off, so you will not be reminded on due dates.'}
+        </Text>
+        {notifOn === false ? (
+          <>
+            <Button
+              title="Turn on reminders"
+              onPress={async () => {
+                const ok = await ensureNotificationPermission();
+                setNotifOn(ok);
+                if (ok) await rescheduleReminders(db).catch(() => 0);
+                else Alert.alert('Allow notifications', 'Open the iPhone Settings app, find Expo Go, and allow notifications.', [
+                  { text: 'Not now', style: 'cancel' },
+                  { text: 'Open Settings', onPress: () => Linking.openSettings() },
+                ]);
+              }}
+            />
+          </>
+        ) : null}
+        {notifOn ? (
+          <Button
+            title="Send a test notification"
+            kind="secondary"
+            onPress={() =>
+              sendTestNotification().then(
+                () => Alert.alert('Sent', 'A test notification will arrive in about 5 seconds. Leave the app open or lock the phone.'),
+                (e) => Alert.alert('Failed', String(e)),
+              )
+            }
+          />
+        ) : null}
       </Card>
 
       <SectionTitle>Test data</SectionTitle>

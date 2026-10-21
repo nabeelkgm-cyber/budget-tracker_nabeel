@@ -1,5 +1,6 @@
 import dayjs from 'dayjs';
 import { MONTH_FMT } from '@/domain/budget';
+import { nextAfter, scheduleFromDate } from '@/domain/recurrence';
 import { DATE_FMT, today } from '@/lib/dates';
 import { MINOR } from '@/domain/money';
 import type { PaymentMethod } from '@/types';
@@ -7,6 +8,7 @@ import { atomic } from '../atomic';
 import { notifyChange } from '../events';
 import { createAccount } from '../repositories/accounts';
 import { upsertBudget } from '../repositories/budgets';
+import { createRecurringRule, processRecurring } from '../repositories/recurring';
 import { listCategories } from '../repositories/categories';
 import { createTransaction } from '../repositories/transactions';
 import type { Db } from '../types';
@@ -16,6 +18,8 @@ import { seedDefaults } from './defaults';
 export async function eraseAllData(db: Db): Promise<void> {
   await atomic(db, async () => {
     await db.execAsync(`
+      DELETE FROM recurring_due;
+      DELETE FROM recurring_rules;
       DELETE FROM budget_alerts_sent;
       DELETE FROM budgets;
       DELETE FROM transactions;
@@ -191,5 +195,23 @@ export async function loadSampleData(db: Db): Promise<void> {
       await add(day(26), 'expense', hdfc, amt(5000, 15000), 'Others', 'India expenses', 'upi');
     }
   });
+
+  // Recurring items. Auto rules start after today so they do not duplicate the sample history.
+  const dateNext = (freq: 'monthly' | 'weekly', day: number) => {
+    const sched = scheduleFromDate(freq, dayjs().date(freq === 'monthly' ? day : 1).format(DATE_FMT));
+    return nextAfter(freq === 'weekly' ? { ...sched, weekday: day } : sched, t0);
+  };
+  const rule = (over: Partial<Parameters<typeof createRecurringRule>[1]>) =>
+    createRecurringRule(db, {
+      name: '', type: 'expense', accountId: cbq, amountMinor: 0, categoryId: null, toAccountId: null,
+      toAmountMinor: null, paymentMethod: 'bank_transfer', note: '', frequency: 'monthly',
+      nextDueDate: t0, endDate: null, mode: 'auto', ...over,
+    });
+  await rule({ name: 'Rent', amountMinor: 380000, categoryId: cat('Rent'), nextDueDate: dateNext('monthly', 2) });
+  await rule({ name: 'Salary', type: 'income', amountMinor: 1450000, categoryId: cat('Salary'), nextDueDate: dateNext('monthly', 1) });
+  await rule({ name: 'Weekly groceries', accountId: cash, amountMinor: 15000, categoryId: cat('Groceries'), paymentMethod: 'cash', frequency: 'weekly', nextDueDate: dateNext('weekly', 5) });
+  // A reminder that is already due, so Home and Recurring show something to act on.
+  await rule({ name: 'Internet bill', accountId: doha, amountMinor: 15000, categoryId: cat('Utilities'), mode: 'remind', nextDueDate: dayjs().subtract(1, 'day').format(DATE_FMT) });
+  await processRecurring(db, t0);
   notifyChange();
 }

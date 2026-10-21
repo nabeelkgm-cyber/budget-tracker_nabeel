@@ -167,6 +167,53 @@ const MIGRATIONS: Migration[] = [
   );
   `,
   },
+
+  // v5: recurring rules and their reminders; guard against duplicate occurrences
+  {
+    sql: `
+  CREATE TABLE recurring_rules (
+    id              TEXT PRIMARY KEY,
+    name            TEXT NOT NULL,
+    type            TEXT NOT NULL CHECK (type IN ('expense','income','transfer')),
+    account_id      TEXT NOT NULL REFERENCES accounts(id),
+    amount_minor    INTEGER NOT NULL CHECK (amount_minor > 0),
+    category_id     TEXT REFERENCES categories(id),
+    to_account_id   TEXT REFERENCES accounts(id),
+    to_amount_minor INTEGER,
+    payment_method  TEXT NOT NULL DEFAULT 'other',
+    note            TEXT NOT NULL DEFAULT '',
+    frequency       TEXT NOT NULL CHECK (frequency IN ('weekly','monthly')),
+    day_of_month    INTEGER CHECK (day_of_month BETWEEN 1 AND 31),
+    weekday         INTEGER CHECK (weekday BETWEEN 0 AND 6),
+    end_date        TEXT,
+    next_due_date   TEXT NOT NULL,
+    mode            TEXT NOT NULL CHECK (mode IN ('auto','remind')),
+    is_active       INTEGER NOT NULL DEFAULT 1,
+    last_error      TEXT,
+    created_at      TEXT NOT NULL,
+    updated_at      TEXT NOT NULL,
+    deleted_at      TEXT
+  );
+
+  -- One row per occurrence that needs the user's confirmation (mode = 'remind').
+  CREATE TABLE recurring_due (
+    id             TEXT PRIMARY KEY,
+    rule_id        TEXT NOT NULL REFERENCES recurring_rules(id),
+    due_date       TEXT NOT NULL,
+    status         TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','done','skipped')),
+    transaction_id TEXT,
+    created_at     TEXT NOT NULL,
+    updated_at     TEXT NOT NULL,
+    UNIQUE (rule_id, due_date)
+  );
+
+  ALTER TABLE transactions ADD COLUMN recurring_due_date TEXT;
+  -- A rule can never create two live transactions for the same due date.
+  CREATE UNIQUE INDEX uq_txn_recurring_occurrence
+    ON transactions(recurring_id, recurring_due_date)
+    WHERE recurring_id IS NOT NULL AND deleted_at IS NULL;
+  `,
+  },
 ];
 
 export const LATEST_VERSION = MIGRATIONS.length;

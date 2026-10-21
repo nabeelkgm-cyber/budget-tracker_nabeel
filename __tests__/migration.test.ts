@@ -68,7 +68,7 @@ describe('migration v1 -> v2 (loan accounts)', () => {
     expect(names.filter((n) => n === 'Loan Interest')).toHaveLength(1);
     expect(names.filter((n) => n === 'Bank Charges')).toHaveLength(1);
     const tables = await db.getAllAsync<{ name: string }>("SELECT name FROM sqlite_master WHERE type='table'");
-    expect(tables.map((x) => x.name)).toEqual(expect.arrayContaining(['budgets', 'budget_alerts_sent']));
+    expect(tables.map((x) => x.name)).toEqual(expect.arrayContaining(['budgets', 'budget_alerts_sent', 'recurring_rules', 'recurring_due']));
   });
 
   it('a fresh install has each preset exactly once', async () => {
