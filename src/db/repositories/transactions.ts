@@ -22,14 +22,14 @@ export interface TransactionFilter {
   dateTo?: string;
 }
 
-const FROM_SQL = `
+export const FROM_SQL = `
   FROM transactions t
   JOIN accounts a ON a.id = t.account_id
   LEFT JOIN accounts ta ON ta.id = t.to_account_id
   LEFT JOIN categories c ON c.id = t.category_id
   LEFT JOIN categories p ON p.id = c.parent_id`;
 
-function buildWhere(filter: TransactionFilter = {}): { sql: string; params: any[] } {
+export function buildWhere(filter: TransactionFilter = {}): { sql: string; params: any[] } {
   const where = ['t.deleted_at IS NULL'];
   const params: any[] = [];
   if (filter.type) {
