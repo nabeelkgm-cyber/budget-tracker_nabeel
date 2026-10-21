@@ -8,13 +8,22 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.nabeel.budgettracker"
+      "bundleIdentifier": "com.nabeel.budgettracker",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "scheme": "budgettracker",
     "plugins": [
       "expo-router",
       "expo-sqlite",
-      "expo-notifications"
+      "expo-notifications",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Budget Tracker uses Face ID to unlock the app and keep your finances private."
+        }
+      ]
     ]
   }
 }
