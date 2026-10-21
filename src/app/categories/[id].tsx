@@ -1,7 +1,7 @@
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useState } from 'react';
-import { Alert, Switch, Text, View } from 'react-native';
+import { Alert, Text } from 'react-native';
 import { Button, Chip, ChipRow, ColorPicker, Field, IconPicker, Label, Loading, Screen, Segmented } from '@/components/ui';
 import { createCategory, getCategory, listCategories, setCategoryArchived, updateCategory } from '@/db/repositories/categories';
 import { useDbQuery } from '@/hooks/useDbQuery';
@@ -21,7 +21,6 @@ export default function CategoryForm() {
   const [parentId, setParentId] = useState<string | null>(null);
   const [icon, setIcon] = useState('pricetag');
   const [color, setColor] = useState(COLOR_CHOICES[0]);
-  const [isSavings, setIsSavings] = useState(false);
   const [archived, setArchived] = useState(false);
   const [hasParent, setHasParent] = useState(false);
 
@@ -35,7 +34,6 @@ export default function CategoryForm() {
       setHasParent(!!c.parent_id);
       setIcon(c.icon);
       setColor(c.color);
-      setIsSavings(!!c.is_savings);
       setArchived(!!c.is_archived);
       setLoaded(true);
     });
@@ -47,8 +45,8 @@ export default function CategoryForm() {
   const save = async () => {
     if (!name.trim()) return Alert.alert('Name needed', 'Give the category a name.');
     try {
-      if (isNew) await createCategory(db, { name, kind, parentId, icon, color, isSavings });
-      else await updateCategory(db, id, { name, icon, color, isSavings });
+      if (isNew) await createCategory(db, { name, kind, parentId, icon, color });
+      else await updateCategory(db, id, { name, icon, color });
       router.back();
     } catch (e) {
       Alert.alert('Could not save', String(e instanceof Error ? e.message : e));
@@ -90,18 +88,6 @@ export default function CategoryForm() {
               ))}
           </ChipRow>
         </>
-      ) : null}
-
-      {kind === 'expense' ? (
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16, gap: 12 }}>
-          <View style={{ flex: 1 }}>
-            <Text style={{ color: t.text, fontWeight: '600' }}>Counts as savings</Text>
-            <Text style={{ color: t.textMuted, fontSize: 12 }}>
-              Still budgeted as an expense, but added back when the savings rate is calculated.
-            </Text>
-          </View>
-          <Switch value={isSavings} onValueChange={setIsSavings} />
-        </View>
       ) : null}
 
       <Label>Icon</Label>

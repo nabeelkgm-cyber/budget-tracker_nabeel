@@ -42,7 +42,6 @@ export interface Category {
   kind: CategoryKind;
   icon: string;
   color: string;
-  is_savings: number;
   is_archived: number;
   sort_order: number;
 }

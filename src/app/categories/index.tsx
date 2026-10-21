@@ -29,7 +29,6 @@ export default function CategoriesScreen() {
                 onPress={() => router.push(`/categories/${c.id}`)}
                 left={<IconCircle icon={c.icon} color={c.color} size={depth ? 30 : 40} />}
                 title={c.name}
-                subtitle={c.is_savings ? 'Counts as savings' : undefined}
               />
             </View>
           </View>

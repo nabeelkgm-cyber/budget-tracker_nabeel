@@ -4,7 +4,7 @@ import type { Db } from '../types';
 /** Placeholder rate (QAR per 1 INR, x1e8). Update it in Settings. */
 const DEFAULT_INR_RATE_E8 = 4_130_000; // 0.0413 QAR per INR (about 24.2 INR per QAR)
 
-const EXPENSE_CATEGORIES: [name: string, icon: string, color: string, isSavings?: boolean][] = [
+const EXPENSE_CATEGORIES: [name: string, icon: string, color: string][] = [
   ['Rent', 'home', '#6C63FF'],
   ['Groceries', 'cart', '#2EB872'],
   ['Fuel', 'speedometer', '#F59E0B'],
@@ -16,7 +16,7 @@ const EXPENSE_CATEGORIES: [name: string, icon: string, color: string, isSavings?
   ['Health', 'medkit', '#F43F5E'],
   ['Education', 'school', '#3B82F6'],
   ['Entertainment', 'film', '#A855F7'],
-  ['Savings', 'wallet', '#22C55E', true],
+  ['Savings', 'wallet', '#22C55E'],
   ['Others', 'ellipsis-horizontal-circle', '#64748B'],
 ];
 
@@ -42,17 +42,17 @@ export async function seedDefaults(db: Db): Promise<void> {
       ['INR', 'Indian Rupee', 'INR', 2, DEFAULT_INR_RATE_E8, now],
     );
     let order = 0;
-    for (const [name, icon, color, isSavings] of EXPENSE_CATEGORIES) {
+    for (const [name, icon, color] of EXPENSE_CATEGORIES) {
       await db.runAsync(
-        `INSERT INTO categories (id,parent_id,name,kind,icon,color,is_savings,sort_order,created_at,updated_at)
-         VALUES (?,NULL,?,'expense',?,?,?,?,?,?)`,
-        [newId(), name, icon, color, isSavings ? 1 : 0, order++, now, now],
+        `INSERT INTO categories (id,parent_id,name,kind,icon,color,sort_order,created_at,updated_at)
+         VALUES (?,NULL,?,'expense',?,?,?,?,?)`,
+        [newId(), name, icon, color, order++, now, now],
       );
     }
     for (const [name, icon, color] of INCOME_CATEGORIES) {
       await db.runAsync(
-        `INSERT INTO categories (id,parent_id,name,kind,icon,color,is_savings,sort_order,created_at,updated_at)
-         VALUES (?,NULL,?,'income',?,?,0,?,?,?)`,
+        `INSERT INTO categories (id,parent_id,name,kind,icon,color,sort_order,created_at,updated_at)
+         VALUES (?,NULL,?,'income',?,?,?,?,?)`,
         [newId(), name, icon, color, order++, now, now],
       );
     }

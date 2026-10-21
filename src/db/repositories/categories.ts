@@ -20,7 +20,6 @@ export interface CategoryInput {
   parentId: string | null;
   icon: string;
   color: string;
-  isSavings: boolean;
 }
 
 export async function createCategory(db: Db, input: CategoryInput): Promise<string> {
@@ -30,8 +29,8 @@ export async function createCategory(db: Db, input: CategoryInput): Promise<stri
     'SELECT COALESCE(MAX(sort_order), -1) + 1 AS n FROM categories',
   );
   await db.runAsync(
-    `INSERT INTO categories (id,parent_id,name,kind,icon,color,is_savings,sort_order,created_at,updated_at)
-     VALUES (?,?,?,?,?,?,?,?,?,?)`,
+    `INSERT INTO categories (id,parent_id,name,kind,icon,color,sort_order,created_at,updated_at)
+     VALUES (?,?,?,?,?,?,?,?,?)`,
     [
       id,
       input.parentId,
@@ -39,7 +38,6 @@ export async function createCategory(db: Db, input: CategoryInput): Promise<stri
       input.kind,
       input.icon,
       input.color,
-      input.isSavings ? 1 : 0,
       next?.n ?? 0,
       now,
       now,
@@ -52,11 +50,11 @@ export async function createCategory(db: Db, input: CategoryInput): Promise<stri
 export async function updateCategory(
   db: Db,
   id: string,
-  input: Pick<CategoryInput, 'name' | 'icon' | 'color' | 'isSavings'>,
+  input: Pick<CategoryInput, 'name' | 'icon' | 'color'>,
 ): Promise<void> {
   await db.runAsync(
-    'UPDATE categories SET name=?, icon=?, color=?, is_savings=?, updated_at=? WHERE id=?',
-    [input.name.trim(), input.icon, input.color, input.isSavings ? 1 : 0, nowIso(), id],
+    'UPDATE categories SET name=?, icon=?, color=?, updated_at=? WHERE id=?',
+    [input.name.trim(), input.icon, input.color, nowIso(), id],
   );
   notifyChange();
 }

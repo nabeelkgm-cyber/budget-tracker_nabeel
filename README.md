@@ -4,9 +4,19 @@ Expense tracking and monthly budget planning. React Native + Expo (TypeScript), 
 
 ## Run it on your iPhone (Expo Go)
 
-One-time:
-1. Install **Node.js (LTS)** on your computer from https://nodejs.org.
+One-time setup:
+1. **Check whether Node.js is installed.** Open Terminal (Mac) or Command Prompt / PowerShell (Windows) and type:
+   ```bash
+   node -v
+   ```
+   If it prints a version like `v22.x.x` (v20 or higher), skip to step 2.
+   If you get "command not found" or "not recognized", install it:
+   - Go to https://nodejs.org, download the **LTS** installer, run it with the default options.
+   - Close and reopen the Terminal, then run `node -v` again to confirm.
 2. Install **Expo Go** on your iPhone from the App Store.
+3. Get the project onto your computer: `git clone https://github.com/nabeelkgm-cyber/budget-tracker_nabeel.git`, then
+   `cd budget-tracker_nabeel` and `git checkout claude/amazing-cori-owc4a6`.
+   (Or use GitHub's green **Code** button -> **Download ZIP** on that branch and unzip it.)
 
 Then, in this folder:
 ```bash

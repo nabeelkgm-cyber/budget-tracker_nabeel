@@ -181,7 +181,7 @@ describe('archive', () => {
   });
 
   it('archiving a category archives its sub-categories', async () => {
-    const sub = await createCategory(db, { name: 'Cafe', kind: 'expense', parentId: cat.Dining, icon: 'cafe', color: '#111', isSavings: false });
+    const sub = await createCategory(db, { name: 'Cafe', kind: 'expense', parentId: cat.Dining, icon: 'cafe', color: '#111' });
     await setCategoryArchived(db, cat.Dining, true);
     const active = (await listCategories(db)).map((c) => c.id);
     expect(active).not.toContain(cat.Dining);
