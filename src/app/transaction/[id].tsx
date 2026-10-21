@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Alert, Text, View } from 'react-native';
 import { Button, Chip, ChipRow, Field, Label, Loading, Screen, Segmented } from '@/components/ui';
 import { monthOf } from '@/domain/budget';
-import { convertMinor, formatMinor, impliedRate, minorToInput, parseAmountToMinor, rateE8ToForeignPerBase } from '@/domain/money';
+import { convertMinor, formatMinor, impliedRate, minorToInput, parseAmountToMinor, rateE8ToForeignPerBaseAuto, zeroText } from '@/domain/money';
 import { listAccounts } from '@/db/repositories/accounts';
 import { BudgetAlert, checkBudgetAlerts } from '@/db/repositories/budgets';
 import { listCategories } from '@/db/repositories/categories';
@@ -22,7 +22,8 @@ import { useDbQuery } from '@/hooks/useDbQuery';
 import { formatBudgetAlert } from '@/lib/budgetText';
 import { fromLocalDate, prettyDate, toLocalDate, today } from '@/lib/dates';
 import { useTheme } from '@/theme';
-import { BASE_CURRENCY, PaymentMethod, TxnType } from '@/types';
+import { PaymentMethod, TxnType } from '@/types';
+import { getBaseCurrency } from '@/domain/currencies';
 
 const METHODS: { value: PaymentMethod; label: string }[] = [
   { value: 'card', label: 'Card' },
@@ -61,20 +62,21 @@ export default function TransactionForm() {
   // Load an existing transaction once.
   useEffect(() => {
     if (isNew) return;
-    getTransaction(db, id).then((x) => {
+    Promise.all([getTransaction(db, id), listAccounts(db, { includeArchived: true })]).then(([x, accs]) => {
       if (!x) return router.back();
+      const cur = (accountId: string | null) => accs.find((a) => a.id === accountId)?.currency;
       setType(x.type);
-      setAmount(minorToInput(x.amount_minor));
+      setAmount(minorToInput(x.amount_minor, cur(x.account_id)));
       setCategoryId(x.category_id);
       setAccountId(x.account_id);
       setToAccountId(x.to_account_id);
-      setToAmount(x.to_amount_minor ? minorToInput(x.to_amount_minor) : '');
+      setToAmount(x.to_amount_minor ? minorToInput(x.to_amount_minor, cur(x.to_account_id)) : '');
       setDate(x.date);
       setOriginalDate(x.date);
       setNote(x.note);
       setMethod(x.payment_method);
       if (x.type === 'transfer') {
-        getLinkedFee(db, id).then((fee) => setFeeText(fee ? minorToInput(fee.amount_minor) : ''));
+        getLinkedFee(db, id).then((fee) => setFeeText(fee ? minorToInput(fee.amount_minor, cur(x.account_id)) : ''));
       }
       setReady(true);
     });
@@ -108,18 +110,18 @@ export default function TransactionForm() {
   if (!ready || !ref) return <Loading />;
 
   const selectableAccounts = ref.accounts.filter((a) => !a.is_archived || a.id === accountId || a.id === toAccountId);
-  const amountMinor = parseAmountToMinor(amount);
+  const amountMinor = parseAmountToMinor(amount, account?.currency);
   const rate = ref.currencies.find((c) => c.code === account?.currency)?.rate_to_base_e8;
 
-  const toAmountMinor = sameCurrency ? amountMinor : parseAmountToMinor(toAmount);
+  const toAmountMinor = sameCurrency ? amountMinor : parseAmountToMinor(toAmount, toAccount?.currency);
   const implied =
     type === 'transfer' && account && toAccount && !sameCurrency && amountMinor && toAmountMinor
-      ? impliedRate(amountMinor, account.currency, toAmountMinor, toAccount.currency, BASE_CURRENCY)
+      ? impliedRate(amountMinor, account.currency, toAmountMinor, toAccount.currency, getBaseCurrency())
       : null;
   const manualRate = implied
     ? ref.currencies.find((c) => c.code === implied.foreignCurrency)?.rate_to_base_e8
     : undefined;
-  const manualRateText = manualRate ? rateE8ToForeignPerBase(manualRate) : null;
+  const manualRateText = manualRate ? rateE8ToForeignPerBaseAuto(manualRate) : null;
   const rateDiff =
     implied && manualRateText
       ? (() => {
@@ -143,10 +145,10 @@ export default function TransactionForm() {
     categoryId: type === 'transfer' ? null : categoryId,
     toAccountId: type === 'transfer' ? toAccountId : null,
     toAmountMinor:
-      type !== 'transfer' ? null : sameCurrency ? (amountMinor ?? 0) : parseAmountToMinor(toAmount),
+      type !== 'transfer' ? null : sameCurrency ? (amountMinor ?? 0) : parseAmountToMinor(toAmount, toAccount?.currency),
     paymentMethod: method,
     note,
-    feeMinor: type === 'transfer' && feeText.trim() !== '' ? parseAmountToMinor(feeText) : null,
+    feeMinor: type === 'transfer' && feeText.trim() !== '' ? parseAmountToMinor(feeText, account?.currency) : null,
   });
 
   /** Shows any newly reached budget thresholds, then runs `next`. */
@@ -163,7 +165,7 @@ export default function TransactionForm() {
 
   const save = async () => {
     if (amountMinor === null) return Alert.alert('Invalid amount', 'Enter an amount like 125.50 (max 2 decimals).');
-    if (type === 'transfer' && feeText.trim() !== '' && parseAmountToMinor(feeText) === null) {
+    if (type === 'transfer' && feeText.trim() !== '' && parseAmountToMinor(feeText, account?.currency) === null) {
       return Alert.alert('Invalid fee', 'Enter the fee like 25.00, or leave it empty.');
     }
     setSaving(true);
@@ -220,13 +222,13 @@ export default function TransactionForm() {
         value={amount}
         onChangeText={setAmount}
         keyboardType="decimal-pad"
-        placeholder="0.00"
+        placeholder={zeroText(account?.currency)}
         autoFocus={isNew}
         style={{ fontSize: 28, fontWeight: '700' }}
       />
-      {type !== 'transfer' && account && account.currency !== BASE_CURRENCY && amountMinor && rate ? (
+      {type !== 'transfer' && account && account.currency !== getBaseCurrency() && amountMinor && rate ? (
         <Text style={{ color: t.textMuted, marginTop: -8, marginBottom: 14, fontSize: 12 }}>
-          ≈ {formatMinor(convertMinor(amountMinor, rate), BASE_CURRENCY)} at today&apos;s rate
+          ≈ {formatMinor(convertMinor(amountMinor, rate, account.currency, getBaseCurrency()), getBaseCurrency())} at today&apos;s rate
         </Text>
       ) : null}
 
@@ -249,7 +251,7 @@ export default function TransactionForm() {
           {selectableAccounts.map((a) => (
             <Chip
               key={a.id}
-              label={`${a.name}${a.currency !== BASE_CURRENCY ? ` (${a.currency})` : ''}`}
+              label={`${a.name}${a.currency !== getBaseCurrency() ? ` (${a.currency})` : ''}`}
               color={a.color}
               selected={accountId === a.id}
               onPress={() => setAccountId(a.id)}
@@ -267,7 +269,7 @@ export default function TransactionForm() {
               .map((a) => (
                 <Chip
                   key={a.id}
-                  label={`${a.name}${a.currency !== BASE_CURRENCY ? ` (${a.currency})` : ''}`}
+                  label={`${a.name}${a.currency !== getBaseCurrency() ? ` (${a.currency})` : ''}`}
                   color={a.color}
                   selected={toAccountId === a.id}
                   onPress={() => setToAccountId(a.id)}
@@ -280,7 +282,7 @@ export default function TransactionForm() {
               value={toAmount}
               onChangeText={setToAmount}
               keyboardType="decimal-pad"
-              placeholder="0.00"
+              placeholder={zeroText(toAccount?.currency)}
             />
           ) : null}
           {implied ? (
@@ -288,7 +290,7 @@ export default function TransactionForm() {
               <Text style={{ color: t.text, fontWeight: '700' }}>Rate you got: {implied.label}</Text>
               {manualRateText ? (
                 <Text style={{ color: t.textMuted, fontSize: 12 }}>
-                  Your manual rate: 1 {BASE_CURRENCY} = {manualRateText} {implied.foreignCurrency}
+                  Your manual rate: 1 {getBaseCurrency()} = {manualRateText} {implied.foreignCurrency}
                   {rateDiff ? ` (${rateDiff})` : ''}
                 </Text>
               ) : null}
@@ -299,7 +301,7 @@ export default function TransactionForm() {
             value={feeText}
             onChangeText={setFeeText}
             keyboardType="decimal-pad"
-            placeholder="0.00"
+            placeholder={zeroText(account?.currency)}
           />
           {feeText.trim() !== '' ? (
             <Text style={{ color: t.textMuted, fontSize: 12, marginTop: -8, marginBottom: 14 }}>

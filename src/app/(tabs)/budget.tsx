@@ -11,9 +11,9 @@ import { formatMinor } from '@/domain/money';
 import { useDbQuery } from '@/hooks/useDbQuery';
 import { formatBudgetAlert } from '@/lib/budgetText';
 import { useTheme } from '@/theme';
-import { BASE_CURRENCY } from '@/types';
+import { getBaseCurrency } from '@/domain/currencies';
 
-const q = (n: number) => formatMinor(n, BASE_CURRENCY);
+const q = (n: number) => formatMinor(n, getBaseCurrency());
 
 export default function BudgetScreen() {
   const t = useTheme();
@@ -146,7 +146,7 @@ export default function BudgetScreen() {
         </>
       ) : null}
       <Text style={{ color: t.textMuted, fontSize: 12 }}>
-        Budgets are in {BASE_CURRENCY}. Spending on a sub-category counts towards its main category. Transfers are not
+        Budgets are in {getBaseCurrency()}. Spending on a sub-category counts towards its main category. Transfers are not
         counted.
       </Text>
     </Screen>

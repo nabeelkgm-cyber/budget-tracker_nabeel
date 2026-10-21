@@ -1,5 +1,5 @@
 import { migrate } from './migrations';
-import { seedDefaults } from './seed/defaults';
+import { ensureCurrencyCatalog, isSeeded, loadCurrencyRegistry } from './currencySetup';
 import type { Db } from './types';
 
 export const DB_NAME = 'budget-tracker.db';
@@ -8,5 +8,9 @@ export const DB_NAME = 'budget-tracker.db';
 export async function initDatabase(db: Db): Promise<void> {
   await db.execAsync('PRAGMA journal_mode = WAL;');
   await migrate(db);
-  await seedDefaults(db);
+  // A brand-new database waits for the user to choose a currency (see SetupGate).
+  if (await isSeeded(db)) {
+    await ensureCurrencyCatalog(db);
+    await loadCurrencyRegistry(db);
+  }
 }

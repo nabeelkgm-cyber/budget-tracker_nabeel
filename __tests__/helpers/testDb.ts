@@ -1,6 +1,7 @@
 import { DatabaseSync } from 'node:sqlite';
 import type { Db } from '@/db/types';
 import { migrate } from '@/db/migrations';
+import { loadCurrencyRegistry } from '@/db/currencySetup';
 import { seedDefaults } from '@/db/seed/defaults';
 
 /** In-memory SQLite (Node built-in) exposing the same async API the app uses. */
@@ -33,9 +34,12 @@ export function createTestDb(): Db {
   };
 }
 
-export async function createReadyDb(): Promise<Db> {
+/** A set-up database. The INR rate is pinned to 0.0413 QAR so amounts in tests are predictable. */
+export async function createReadyDb(base: string = 'QAR'): Promise<Db> {
   const db = createTestDb();
   await migrate(db);
-  await seedDefaults(db);
+  await seedDefaults(db, base);
+  await loadCurrencyRegistry(db);
+  if (base === 'QAR') await db.runAsync("UPDATE currencies SET rate_to_base_e8 = 4130000 WHERE code = 'INR'");
   return db;
 }

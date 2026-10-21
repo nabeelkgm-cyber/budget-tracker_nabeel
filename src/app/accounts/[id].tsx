@@ -3,12 +3,13 @@ import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useState } from 'react';
 import { Alert, Text, View } from 'react-native';
 import { Button, Chip, ChipRow, ColorPicker, Field, IconPicker, Label, Loading, Screen } from '@/components/ui';
-import { minorToInput, parseAmountToMinor } from '@/domain/money';
+import { minorToInput, parseAmountToMinor, zeroText } from '@/domain/money';
 import { createAccount, getAccount, setAccountArchived, updateAccount } from '@/db/repositories/accounts';
 import { listCurrencies } from '@/db/repositories/currencies';
 import { useDbQuery } from '@/hooks/useDbQuery';
 import { COLOR_CHOICES, useTheme } from '@/theme';
 import type { AccountType } from '@/types';
+import { getBaseCurrency } from '@/domain/currencies';
 
 const TYPES: { value: AccountType; label: string; icon: string }[] = [
   { value: 'cash', label: 'Cash', icon: 'cash' },
@@ -32,7 +33,7 @@ export default function AccountForm() {
   const [loaded, setLoaded] = useState(isNew);
   const [name, setName] = useState('');
   const [type, setType] = useState<AccountType>('bank');
-  const [currency, setCurrency] = useState('QAR');
+  const [currency, setCurrency] = useState(getBaseCurrency());
   const [opening, setOpening] = useState('');
   const [limit, setLimit] = useState('');
   const [stmtDay, setStmtDay] = useState('');
@@ -49,8 +50,8 @@ export default function AccountForm() {
       setType(a.type);
       setCurrency(a.currency);
       // Cards store "owed" as a negative opening balance; show it as a positive number.
-      setOpening(minorToInput(a.type === 'credit_card' || a.type === 'loan' ? -a.opening_balance_minor : a.opening_balance_minor));
-      setLimit(a.credit_limit_minor ? minorToInput(a.credit_limit_minor) : '');
+      setOpening(minorToInput(a.type === 'credit_card' || a.type === 'loan' ? -a.opening_balance_minor : a.opening_balance_minor, a.currency));
+      setLimit(a.credit_limit_minor ? minorToInput(a.credit_limit_minor, a.currency) : '');
       setStmtDay(a.statement_day ? String(a.statement_day) : '');
       setDueDay(a.due_day ? String(a.due_day) : '');
       setIcon(a.icon);
@@ -67,9 +68,9 @@ export default function AccountForm() {
 
   const save = async () => {
     if (!name.trim()) return Alert.alert('Name needed', 'Give the account a name.');
-    const openingAbs = opening.trim() === '' ? 0 : parseAmountToMinor(opening);
+    const openingAbs = opening.trim() === '' ? 0 : parseAmountToMinor(opening, currency);
     if (openingAbs === null) return Alert.alert('Invalid amount', 'Opening balance must be a number like 1500.00');
-    const limitMinor = isCard && limit.trim() !== '' ? parseAmountToMinor(limit) : null;
+    const limitMinor = isCard && limit.trim() !== '' ? parseAmountToMinor(limit, currency) : null;
     if (isCard && limit.trim() !== '' && limitMinor === null) return Alert.alert('Invalid credit limit');
     const input = {
       name,
@@ -133,11 +134,11 @@ export default function AccountForm() {
         value={opening}
         onChangeText={setOpening}
         keyboardType="decimal-pad"
-        placeholder="0.00"
+        placeholder={zeroText(currency)}
       />
       {isCard ? (
         <>
-          <Field label="Credit limit (optional)" value={limit} onChangeText={setLimit} keyboardType="decimal-pad" placeholder="0.00" />
+          <Field label="Credit limit (optional)" value={limit} onChangeText={setLimit} keyboardType="decimal-pad" placeholder={zeroText(currency)} />
           <View style={{ flexDirection: 'row', gap: 12 }}>
             <View style={{ flex: 1 }}>
               <Field label="Statement day (1-31)" value={stmtDay} onChangeText={setStmtDay} keyboardType="number-pad" maxLength={2} />

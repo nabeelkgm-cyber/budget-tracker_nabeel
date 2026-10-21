@@ -1,8 +1,7 @@
+import { CATALOG, catalogEntry, defaultRateE8 } from '@/domain/currencies';
 import { newId, nowIso } from '@/lib/id';
+import { atomic } from '../atomic';
 import type { Db } from '../types';
-
-/** Placeholder rate (QAR per 1 INR, x1e8). Update it in Settings. */
-const DEFAULT_INR_RATE_E8 = 4_130_000; // 0.0413 QAR per INR (about 24.2 INR per QAR)
 
 const EXPENSE_CATEGORIES: [name: string, icon: string, color: string][] = [
   ['Rent', 'home', '#6C63FF'],
@@ -27,22 +26,23 @@ const INCOME_CATEGORIES: [name: string, icon: string, color: string][] = [
   ['Other Income', 'add-circle', '#0D9488'],
 ];
 
-/** Idempotent: inserts currencies and preset categories only on a fresh database. */
-export async function seedDefaults(db: Db): Promise<void> {
-  const done = await db.getFirstAsync<{ value: string }>(
-    "SELECT value FROM settings WHERE key = 'seeded'",
-  );
+/**
+ * Idempotent: on a fresh database, inserts every known currency (rates are placeholders relative to
+ * `base`, to be updated in Settings), the preset categories, and records the base currency.
+ * Existing databases are left alone.
+ */
+export async function seedDefaults(db: Db, base: string = 'QAR'): Promise<void> {
+  const done = await db.getFirstAsync<{ value: string }>("SELECT value FROM settings WHERE key = 'seeded'");
   if (done) return;
+  if (!catalogEntry(base)?.gcc) throw new Error(`${base} cannot be used as the base currency.`);
   const now = nowIso();
-  await db.withTransactionAsync(async () => {
-    await db.runAsync(
-      'INSERT INTO currencies (code,name,symbol,minor_units,rate_to_base_e8,updated_at) VALUES (?,?,?,?,?,?)',
-      ['QAR', 'Qatari Riyal', 'QAR', 2, 100_000_000, now],
-    );
-    await db.runAsync(
-      'INSERT INTO currencies (code,name,symbol,minor_units,rate_to_base_e8,updated_at) VALUES (?,?,?,?,?,?)',
-      ['INR', 'Indian Rupee', 'INR', 2, DEFAULT_INR_RATE_E8, now],
-    );
+  await atomic(db, async () => {
+    for (const c of CATALOG) {
+      await db.runAsync(
+        'INSERT INTO currencies (code,name,symbol,minor_units,rate_to_base_e8,updated_at) VALUES (?,?,?,?,?,?)',
+        [c.code, c.name, c.code, c.minorUnits, defaultRateE8(c.code, base), now],
+      );
+    }
     let order = 0;
     for (const [name, icon, color] of EXPENSE_CATEGORIES) {
       await db.runAsync(
@@ -58,7 +58,7 @@ export async function seedDefaults(db: Db): Promise<void> {
         [newId(), name, icon, color, order++, now, now],
       );
     }
-    await db.runAsync("INSERT INTO settings (key,value) VALUES ('base_currency','QAR')");
+    await db.runAsync("INSERT INTO settings (key,value) VALUES ('base_currency', ?)", [base]);
     await db.runAsync("INSERT INTO settings (key,value) VALUES ('seeded','1')");
   });
 }

@@ -34,9 +34,9 @@ export function niceMax(value: number): number {
   return nice * exp;
 }
 
-/** Minor units -> short label: 950 -> "9", 125000 -> "1.3k", 250000000 -> "2.5M". */
-export function compactAmount(minor: number): string {
-  const major = Math.abs(minor) / 100;
+/** Minor units -> short label: 950 -> "10", 125000 -> "1.3k", 250000000 -> "2.5M" (2-decimal currency). */
+export function compactAmount(minor: number, decimals = 2): string {
+  const major = Math.abs(minor) / 10 ** decimals;
   const sign = minor < 0 ? '-' : '';
   const trim = (n: number) => n.toFixed(1).replace(/\.0$/, '');
   if (major >= 1_000_000) return `${sign}${trim(major / 1_000_000)}M`;

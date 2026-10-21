@@ -1,3 +1,4 @@
+import { currenciesWithDecimals, getBaseCurrency } from '@/domain/currencies';
 import { convertMinor, parseAmountToMinor } from '@/domain/money';
 import { validateTransaction } from '@/domain/transactionRules';
 import { today } from '@/lib/dates';
@@ -59,10 +60,19 @@ export function buildWhere(filter: TransactionFilter = {}): { sql: string; param
       (col) => `${col} LIKE ? ESCAPE '\\'`,
     );
     params.push(like, like, like, like, like);
-    const amount = parseAmountToMinor(q);
-    if (amount !== null) {
-      parts.push('t.amount_minor = ?');
-      params.push(amount);
+    // An amount typed as "125.5" means 12550 minor units in a 2-decimal account but 125500 in a
+    // 3-decimal one (OMR, KWD, BHD), so match each kind of account with its own number.
+    const three = currenciesWithDecimals(3);
+    const amount2 = parseAmountToMinor(q, 'INR');
+    const amount3 = parseAmountToMinor(q, 'OMR');
+    const marks = three.map(() => '?').join(',');
+    if (amount2 !== null) {
+      parts.push(`(a.currency NOT IN (${marks}) AND t.amount_minor = ?)`);
+      params.push(...three, amount2);
+    }
+    if (amount3 !== null) {
+      parts.push(`(a.currency IN (${marks}) AND t.amount_minor = ?)`);
+      params.push(...three, amount3);
     }
     where.push(`(${parts.join(' OR ')})`);
   }
@@ -116,14 +126,16 @@ export const getTransaction = (db: Db, id: string) =>
     id,
   ]);
 
-async function rateFor(db: Db, accountId: string): Promise<number> {
-  const row = await db.getFirstAsync<{ rate: number }>(
-    `SELECT c.rate_to_base_e8 AS rate FROM accounts a JOIN currencies c ON c.code = a.currency
+/** Current rate to the base currency for an account's currency, and that currency's code. */
+async function rateFor(db: Db, accountId: string): Promise<{ rate: number; currency: string }> {
+  const row = await db.getFirstAsync<{ rate: number; currency: string }>(
+    `SELECT c.rate_to_base_e8 AS rate, a.currency AS currency FROM accounts a
+     JOIN currencies c ON c.code = a.currency
      WHERE a.id = ?`,
     [accountId],
   );
   if (!row) throw new Error('Account not found.');
-  return row.rate;
+  return row;
 }
 
 async function check(db: Db, input: TransactionInput): Promise<void> {
@@ -141,7 +153,7 @@ interface InsertExtras {
 
 async function insertRow(db: Db, id: string, input: TransactionInput, extras: InsertExtras = {}) {
   const now = nowIso();
-  const rate = await rateFor(db, input.accountId);
+  const { rate, currency } = await rateFor(db, input.accountId);
   const isTransfer = input.type === 'transfer';
   await db.runAsync(
     `INSERT INTO transactions (id,type,date,account_id,amount_minor,fx_rate_e8,base_amount_minor,
@@ -155,7 +167,7 @@ async function insertRow(db: Db, id: string, input: TransactionInput, extras: In
       input.accountId,
       input.amountMinor,
       rate,
-      convertMinor(input.amountMinor, rate),
+      convertMinor(input.amountMinor, rate, currency, getBaseCurrency()),
       isTransfer ? null : input.categoryId,
       isTransfer ? input.toAccountId : null,
       isTransfer ? input.toAmountMinor : null,
@@ -232,10 +244,9 @@ export async function updateTransaction(
   const existing = await getTransaction(db, id);
   if (!existing) throw new Error('Transaction not found.');
   // Keep the rate the entry was recorded with unless it moves to a different account.
-  const rate =
-    existing.account_id === input.accountId
-      ? existing.fx_rate_e8
-      : await rateFor(db, input.accountId);
+  const current = await rateFor(db, input.accountId);
+  const currency = current.currency;
+  const rate = existing.account_id === input.accountId ? existing.fx_rate_e8 : current.rate;
   const isTransfer = input.type === 'transfer';
   await atomic(db, async () => {
     await db.runAsync(
@@ -248,7 +259,7 @@ export async function updateTransaction(
         input.accountId,
         input.amountMinor,
         rate,
-        convertMinor(input.amountMinor, rate),
+        convertMinor(input.amountMinor, rate, currency, getBaseCurrency()),
         isTransfer ? null : input.categoryId,
         isTransfer ? input.toAccountId : null,
         isTransfer ? input.toAmountMinor : null,
@@ -263,8 +274,7 @@ export async function updateTransaction(
     const fee = await getLinkedFee(db, id);
     const wantFee = isTransfer && !!input.feeMinor && input.feeMinor > 0;
     if (wantFee && fee) {
-      const feeRate =
-        fee.account_id === input.accountId ? fee.fx_rate_e8 : await rateFor(db, input.accountId);
+      const feeRate = fee.account_id === input.accountId ? fee.fx_rate_e8 : current.rate;
       await db.runAsync(
         `UPDATE transactions SET date=?, account_id=?, amount_minor=?, fx_rate_e8=?,
            base_amount_minor=?, updated_at=? WHERE id=?`,
@@ -273,7 +283,7 @@ export async function updateTransaction(
           input.accountId,
           input.feeMinor!,
           feeRate,
-          convertMinor(input.feeMinor!, feeRate),
+          convertMinor(input.feeMinor!, feeRate, currency, getBaseCurrency()),
           nowIso(),
           fee.id,
         ],

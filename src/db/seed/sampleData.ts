@@ -12,10 +12,14 @@ import { createRecurringRule, processRecurring } from '../repositories/recurring
 import { listCategories } from '../repositories/categories';
 import { createTransaction } from '../repositories/transactions';
 import type { Db } from '../types';
+import { loadCurrencyRegistry } from '../currencySetup';
 import { seedDefaults } from './defaults';
 
-/** Wipes every table and re-creates currencies and preset categories. */
-export async function eraseAllData(db: Db): Promise<void> {
+/**
+ * Wipes every table, including the chosen currency, so the app asks for it again.
+ * Pass `reseedBase` to immediately set up again with that base currency instead.
+ */
+export async function eraseAllData(db: Db, reseedBase?: string): Promise<void> {
   await atomic(db, async () => {
     await db.execAsync(`
       DELETE FROM recurring_due;
@@ -29,7 +33,8 @@ export async function eraseAllData(db: Db): Promise<void> {
       DELETE FROM settings;
     `);
   });
-  await seedDefaults(db);
+  if (reseedBase) await seedDefaults(db, reseedBase);
+  await loadCurrencyRegistry(db);
   notifyChange();
 }
 
@@ -44,7 +49,7 @@ function lcg(seed: number) {
 
 /** Erases everything, then loads realistic accounts and ~3 months of transactions. */
 export async function loadSampleData(db: Db): Promise<void> {
-  await eraseAllData(db);
+  await eraseAllData(db, 'QAR'); // the sample uses Qatari banks, so it is always in QAR
   const cats = await listCategories(db);
   const cat = (name: string) => {
     const c = cats.find((x) => x.name === name);

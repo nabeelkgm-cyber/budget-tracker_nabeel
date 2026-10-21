@@ -13,7 +13,8 @@ import { TransactionFilter, listTransactions, summarizeTransactions } from '@/db
 import { useDbQuery } from '@/hooks/useDbQuery';
 import { prettyDate } from '@/lib/dates';
 import { useTheme } from '@/theme';
-import { BASE_CURRENCY, TransactionRow as Txn } from '@/types';
+import { TransactionRow as Txn } from '@/types';
+import { getBaseCurrency } from '@/domain/currencies';
 
 const PAGE_LIMIT = 500;
 
@@ -125,8 +126,8 @@ export default function TransactionsScreen() {
           <Text style={{ color: t.textMuted, fontSize: 12, marginTop: 2 }}>
             {data.totals.count} transaction{data.totals.count === 1 ? '' : 's'}
             {data.totals.count > PAGE_LIMIT ? ` (showing latest ${PAGE_LIMIT})` : ''} ·{' '}
-            <Text style={{ color: t.income }}>In {formatMinor(data.totals.incomeMinor, BASE_CURRENCY)}</Text> ·{' '}
-            <Text style={{ color: t.expense }}>Out {formatMinor(data.totals.expenseMinor, BASE_CURRENCY)}</Text>
+            <Text style={{ color: t.income }}>In {formatMinor(data.totals.incomeMinor, getBaseCurrency())}</Text> ·{' '}
+            <Text style={{ color: t.expense }}>Out {formatMinor(data.totals.expenseMinor, getBaseCurrency())}</Text>
           </Text>
         </View>
       ) : null}

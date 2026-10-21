@@ -10,7 +10,7 @@ import { formatMinor, minorToInput, parseAmountToMinor } from '@/domain/money';
 import { useDbQuery } from '@/hooks/useDbQuery';
 import { formatBudgetAlert } from '@/lib/budgetText';
 import { useTheme } from '@/theme';
-import { BASE_CURRENCY } from '@/types';
+import { getBaseCurrency } from '@/domain/currencies';
 
 export default function SetBudgetScreen() {
   const { categoryId, month } = useLocalSearchParams<{ categoryId: string; month: string }>();
@@ -38,12 +38,12 @@ export default function SetBudgetScreen() {
   const icon = row?.icon ?? free?.icon ?? 'pricetag';
   const color = row?.color ?? free?.color ?? t.primary;
   const spent = row?.spentMinor ?? free?.spentMinor ?? 0;
-  const q = (n: number) => formatMinor(n, BASE_CURRENCY);
+  const q = (n: number) => formatMinor(n, getBaseCurrency());
 
   const save = async () => {
     const amountMinor = parseAmountToMinor(amount);
     if (amountMinor === null || amountMinor <= 0) {
-      return Alert.alert('Invalid amount', `Enter a budget like 1500.00 (${BASE_CURRENCY}).`);
+      return Alert.alert('Invalid amount', `Enter a budget like 1500.00 (${getBaseCurrency()}).`);
     }
     try {
       await upsertBudget(db, { month, categoryId, amountMinor, rollover });
@@ -81,7 +81,7 @@ export default function SetBudgetScreen() {
       </View>
 
       <Field
-        label={`Budget for the month (${BASE_CURRENCY})`}
+        label={`Budget for the month (${getBaseCurrency()})`}
         value={amount}
         onChangeText={setAmount}
         keyboardType="decimal-pad"

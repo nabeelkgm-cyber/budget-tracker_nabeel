@@ -3,8 +3,6 @@ export type TxnType = 'expense' | 'income' | 'transfer';
 export type CategoryKind = 'expense' | 'income';
 export type PaymentMethod = 'cash' | 'card' | 'bank_transfer' | 'upi' | 'other';
 
-export const BASE_CURRENCY = 'QAR';
-
 export interface Currency {
   code: string;
   name: string;

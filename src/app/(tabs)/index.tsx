@@ -16,7 +16,7 @@ import { loadSampleData } from '@/db/seed/sampleData';
 import { useDbQuery } from '@/hooks/useDbQuery';
 import { monthLabel, monthRange, prettyDate, today } from '@/lib/dates';
 import { useTheme } from '@/theme';
-import { BASE_CURRENCY } from '@/types';
+import { getBaseCurrency } from '@/domain/currencies';
 
 export default function HomeScreen() {
   const t = useTheme();
@@ -55,7 +55,7 @@ export default function HomeScreen() {
   }
 
   const fxRate = (code: string) => currencies.find((c) => c.code === code)?.rate_to_base_e8 ?? 0;
-  const netWorth = accounts.reduce((sum, a) => sum + convertMinor(a.balance_minor, fxRate(a.currency)), 0);
+  const netWorth = accounts.reduce((sum, a) => sum + convertMinor(a.balance_minor, fxRate(a.currency), a.currency, getBaseCurrency()), 0);
   const assets = accounts.filter((a) => a.type === 'cash' || a.type === 'bank');
   const cards = accounts.filter((a) => a.type === 'credit_card');
   const loans = accounts.filter((a) => a.type === 'loan');
@@ -74,9 +74,9 @@ export default function HomeScreen() {
             <Text style={{ color: a.balance_minor < 0 ? t.expense : t.text, fontWeight: '700' }}>
               {formatMinor(a.balance_minor, a.currency)}
             </Text>
-            {a.currency !== BASE_CURRENCY ? (
+            {a.currency !== getBaseCurrency() ? (
               <Text style={{ color: t.textMuted, fontSize: 12 }}>
-                ≈ {formatMinor(convertMinor(a.balance_minor, fxRate(a.currency)), BASE_CURRENCY)}
+                ≈ {formatMinor(convertMinor(a.balance_minor, fxRate(a.currency), a.currency, getBaseCurrency()), getBaseCurrency())}
               </Text>
             ) : null}
           </View>
@@ -114,16 +114,16 @@ export default function HomeScreen() {
       <Card style={{ padding: 20 }}>
         <Text style={{ color: t.textMuted, fontWeight: '700', marginBottom: 14 }}>{monthLabel(today())}</Text>
         <View style={{ flexDirection: 'row' }}>
-          <Stat label="Income" value={formatMinor(month.incomeMinor, BASE_CURRENCY)} color={t.income} />
-          <Stat label="Expense" value={formatMinor(month.expenseMinor, BASE_CURRENCY)} color={t.expense} />
+          <Stat label="Income" value={formatMinor(month.incomeMinor, getBaseCurrency())} color={t.income} />
+          <Stat label="Expense" value={formatMinor(month.expenseMinor, getBaseCurrency())} color={t.expense} />
         </View>
         <View style={{ height: 1, backgroundColor: t.border, marginVertical: 14 }} />
         <View style={{ flexDirection: 'row' }}>
-          <Stat label="Savings" value={formatMinor(savings, BASE_CURRENCY)} color={savings < 0 ? t.expense : t.text} />
+          <Stat label="Savings" value={formatMinor(savings, getBaseCurrency())} color={savings < 0 ? t.expense : t.text} />
           <Stat label="Savings rate" value={formatPercent(rate)} color={rate !== null && rate < 0 ? t.expense : t.text} />
         </View>
         <Text style={{ color: t.textMuted, fontSize: 12, marginTop: 12 }}>
-          Transfers are not counted. Foreign-currency entries are in {BASE_CURRENCY} at the rate used when entered.
+          Transfers are not counted. Foreign-currency entries are in {getBaseCurrency()} at the rate used when entered.
         </Text>
       </Card>
 
@@ -138,12 +138,12 @@ export default function HomeScreen() {
                 {budget.totals.remainingMinor >= 0 ? 'Remaining overall' : 'Over budget by'}
               </Text>
               <Text style={{ color: stateColor(budget.totals.state, t), fontSize: 22, fontWeight: '800', marginVertical: 2 }}>
-                {formatMinor(Math.abs(budget.totals.remainingMinor), BASE_CURRENCY)}
+                {formatMinor(Math.abs(budget.totals.remainingMinor), getBaseCurrency())}
               </Text>
               <BudgetBar pct={budget.totals.pct} state={budget.totals.state} height={10} />
               <Text style={{ color: t.textMuted, fontSize: 12, marginTop: 4 }}>
-                {formatMinor(budget.totals.spentMinor, BASE_CURRENCY)} of{' '}
-                {formatMinor(budget.totals.availableMinor, BASE_CURRENCY)} · {budget.totals.pct}% used
+                {formatMinor(budget.totals.spentMinor, getBaseCurrency())} of{' '}
+                {formatMinor(budget.totals.availableMinor, getBaseCurrency())} · {budget.totals.pct}% used
               </Text>
             </View>
             {[...budget.rows]
@@ -155,8 +155,8 @@ export default function HomeScreen() {
                     <Text style={{ color: t.text, fontWeight: '600' }}>{r.categoryName}</Text>
                     <Text style={{ color: stateColor(r.state, t), fontWeight: '700' }}>
                       {r.remainingMinor >= 0
-                        ? `${formatMinor(r.remainingMinor, BASE_CURRENCY)} left`
-                        : `Over by ${formatMinor(-r.remainingMinor, BASE_CURRENCY)}`}
+                        ? `${formatMinor(r.remainingMinor, getBaseCurrency())} left`
+                        : `Over by ${formatMinor(-r.remainingMinor, getBaseCurrency())}`}
                     </Text>
                   </View>
                   <BudgetBar pct={r.pct} state={r.state} height={6} />
@@ -192,7 +192,7 @@ export default function HomeScreen() {
       <Card style={{ padding: 20 }}>
         <Text style={{ color: t.textMuted, fontWeight: '600' }}>Net balance (all accounts)</Text>
         <Text style={{ color: netWorth < 0 ? t.expense : t.text, fontSize: 30, fontWeight: '800', marginTop: 4 }}>
-          {formatMinor(netWorth, BASE_CURRENCY)}
+          {formatMinor(netWorth, getBaseCurrency())}
         </Text>
         <Text style={{ color: t.textMuted, fontSize: 12, marginTop: 4 }}>
           Foreign accounts converted at your manual rate. Amounts owed on cards and loans are subtracted.

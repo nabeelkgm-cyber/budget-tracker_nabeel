@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { LayoutChangeEvent, View } from 'react-native';
 import Svg, { G, Line, Rect, Text as SvgText } from 'react-native-svg';
 import { barHeight, compactAmount, niceMax } from '@/domain/chartMath';
+import { decimalsOf, getBaseCurrency } from '@/domain/currencies';
 import type { MonthPoint } from '@/db/repositories/reports';
 import { useTheme } from '@/theme';
 
@@ -44,7 +45,7 @@ export function MonthlyBars({
               <G key={v}>
                 <Line x1={AXIS_WIDTH} x2={width} y1={y} y2={y} stroke={t.border} strokeWidth={1} />
                 <SvgText x={AXIS_WIDTH - 6} y={y + 4} fontSize={10} fill={t.textMuted} textAnchor="end">
-                  {compactAmount(v)}
+                  {compactAmount(v, decimalsOf(getBaseCurrency()))}
                 </SvgText>
               </G>
             );

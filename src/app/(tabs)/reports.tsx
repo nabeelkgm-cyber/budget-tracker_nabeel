@@ -17,9 +17,9 @@ import { formatPercent, savingsOf, savingsRatePercent } from '@/domain/summary';
 import { useDbQuery } from '@/hooks/useDbQuery';
 import { DATE_FMT, fromLocalDate, toLocalDate, today } from '@/lib/dates';
 import { useTheme } from '@/theme';
-import { BASE_CURRENCY } from '@/types';
+import { getBaseCurrency } from '@/domain/currencies';
 
-const q = (n: number) => formatMinor(n, BASE_CURRENCY);
+const q = (n: number) => formatMinor(n, getBaseCurrency());
 const MAX_SLICES = 8;
 const OTHER_GREY = '#94A3B8';
 
@@ -261,7 +261,7 @@ export default function ReportsScreen() {
       )}
 
       <Text style={{ color: t.textMuted, fontSize: 12 }}>
-        All amounts are in {BASE_CURRENCY}, using the rate saved on each entry. Transfers are not counted as income or
+        All amounts are in {getBaseCurrency()}, using the rate saved on each entry. Transfers are not counted as income or
         expense.
       </Text>
 

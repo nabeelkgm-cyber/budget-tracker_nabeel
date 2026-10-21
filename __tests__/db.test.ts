@@ -71,7 +71,7 @@ describe('migrations and seed', () => {
       expect(names).toContain(n);
     }
     const cur = await db.getAllAsync<{ code: string }>('SELECT code FROM currencies ORDER BY code');
-    expect(cur.map((c) => c.code)).toEqual(['INR', 'QAR']);
+    expect(cur.map((c) => c.code)).toEqual(['AED', 'BHD', 'INR', 'KWD', 'OMR', 'QAR', 'SAR']);
   });
 });
 

@@ -4,6 +4,7 @@ import { SQLiteProvider } from 'expo-sqlite';
 import { Suspense } from 'react';
 import { useColorScheme } from 'react-native';
 import { AppStartup } from '@/components/AppStartup';
+import { SetupGate } from '@/components/SetupGate';
 import { Loading } from '@/components/ui';
 import { DB_NAME, initDatabase } from '@/db/client';
 
@@ -14,6 +15,7 @@ export default function RootLayout() {
       <Suspense fallback={<Loading />}>
         <SQLiteProvider databaseName={DB_NAME} onInit={initDatabase} useSuspense>
           <AppStartup />
+          <SetupGate />
           <Stack screenOptions={{ headerBackButtonDisplayMode: 'minimal' }}>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="transaction/[id]" options={{ presentation: 'modal', title: 'Transaction' }} />

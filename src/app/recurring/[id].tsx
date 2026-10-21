@@ -14,12 +14,13 @@ import {
   updateRecurringRule,
 } from '@/db/repositories/recurring';
 import { Frequency, describeSchedule, scheduleFromDate } from '@/domain/recurrence';
-import { minorToInput, parseAmountToMinor } from '@/domain/money';
+import { minorToInput, parseAmountToMinor, zeroText } from '@/domain/money';
 import { useDbQuery } from '@/hooks/useDbQuery';
 import { fromLocalDate, prettyDate, toLocalDate, today } from '@/lib/dates';
 import { ensureNotificationPermission, rescheduleReminders } from '@/services/notifications';
 import { useTheme } from '@/theme';
-import { BASE_CURRENCY, PaymentMethod, TxnType } from '@/types';
+import { PaymentMethod, TxnType } from '@/types';
+import { getBaseCurrency } from '@/domain/currencies';
 
 const METHODS: { value: PaymentMethod; label: string }[] = [
   { value: 'card', label: 'Card' },
@@ -59,15 +60,16 @@ export default function RecurringForm() {
 
   useEffect(() => {
     if (isNew) return;
-    getRecurringRule(db, id).then((r) => {
+    Promise.all([getRecurringRule(db, id), listAccounts(db, { includeArchived: true })]).then(([r, accs]) => {
       if (!r) return router.back();
+      const cur = (accountId: string | null) => accs.find((a) => a.id === accountId)?.currency;
       setName(r.name);
       setType(r.type);
-      setAmount(minorToInput(r.amount_minor));
+      setAmount(minorToInput(r.amount_minor, cur(r.account_id)));
       setCategoryId(r.category_id);
       setAccountId(r.account_id);
       setToAccountId(r.to_account_id);
-      setToAmount(r.to_amount_minor ? minorToInput(r.to_amount_minor) : '');
+      setToAmount(r.to_amount_minor ? minorToInput(r.to_amount_minor, cur(r.to_account_id)) : '');
       setMethod(r.payment_method);
       setFrequency(r.frequency);
       setDueDate(r.next_due_date);
@@ -107,9 +109,9 @@ export default function RecurringForm() {
   const inPast = dueDate < today();
 
   const save = async () => {
-    const amountMinor = parseAmountToMinor(amount);
+    const amountMinor = parseAmountToMinor(amount, account?.currency);
     if (amountMinor === null) return Alert.alert('Invalid amount', 'Enter an amount like 3800.00');
-    const toAmountMinor = type !== 'transfer' ? null : sameCurrency ? amountMinor : parseAmountToMinor(toAmount);
+    const toAmountMinor = type !== 'transfer' ? null : sameCurrency ? amountMinor : parseAmountToMinor(toAmount, toAccount?.currency);
     setSaving(true);
     try {
       const input = {
@@ -195,7 +197,7 @@ export default function RecurringForm() {
         value={amount}
         onChangeText={setAmount}
         keyboardType="decimal-pad"
-        placeholder="0.00"
+        placeholder={zeroText(account?.currency)}
       />
 
       {type !== 'transfer' ? (
@@ -214,7 +216,7 @@ export default function RecurringForm() {
         {selectable.map((a) => (
           <Chip
             key={a.id}
-            label={`${a.name}${a.currency !== BASE_CURRENCY ? ` (${a.currency})` : ''}`}
+            label={`${a.name}${a.currency !== getBaseCurrency() ? ` (${a.currency})` : ''}`}
             color={a.color}
             selected={accountId === a.id}
             onPress={() => setAccountId(a.id)}
@@ -231,7 +233,7 @@ export default function RecurringForm() {
               .map((a) => (
                 <Chip
                   key={a.id}
-                  label={`${a.name}${a.currency !== BASE_CURRENCY ? ` (${a.currency})` : ''}`}
+                  label={`${a.name}${a.currency !== getBaseCurrency() ? ` (${a.currency})` : ''}`}
                   color={a.color}
                   selected={toAccountId === a.id}
                   onPress={() => setToAccountId(a.id)}
@@ -244,7 +246,7 @@ export default function RecurringForm() {
               value={toAmount}
               onChangeText={setToAmount}
               keyboardType="decimal-pad"
-              placeholder="0.00"
+              placeholder={zeroText(toAccount?.currency)}
             />
           ) : null}
         </>
