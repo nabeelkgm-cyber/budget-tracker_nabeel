@@ -94,6 +94,10 @@ export interface TransactionInput {
   fingerprint?: string | null;
   /** Transfers only: optional fee charged on the From account, saved as a Bank Charges expense. */
   feeMinor?: number | null;
+  /** Keep a specific id (used when importing an exported file). */
+  id?: string;
+  /** Use this exchange rate (base per 1 unit, x1e8) instead of the current one. */
+  fxRateE8?: number | null;
   /** Set by recurring rules so each occurrence is only ever created once. */
   recurringId?: string | null;
   recurringDueDate?: string | null;

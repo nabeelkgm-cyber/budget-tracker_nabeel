@@ -34,6 +34,22 @@ export default function MoreScreen() {
         />
         <Divider />
         <Row
+          left={<IconCircle icon="cloud-download" color="#0EA5E9" />}
+          title="Backup & data"
+          subtitle="Backup, restore, Excel / CSV export and import"
+          right={chevron}
+          onPress={() => router.push('/data')}
+        />
+        <Divider />
+        <Row
+          left={<IconCircle icon="lock-closed" color="#22C55E" />}
+          title="App lock"
+          subtitle="PIN and Face ID"
+          right={chevron}
+          onPress={() => router.push('/lock')}
+        />
+        <Divider />
+        <Row
           left={<IconCircle icon="settings" color="#64748B" />}
           title="Settings"
           subtitle="Exchange rate, sample data"

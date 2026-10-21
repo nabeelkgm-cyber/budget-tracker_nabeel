@@ -1,10 +1,11 @@
 import { useSQLiteContext } from 'expo-sqlite';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Alert, AppState } from 'react-native';
 import { processRecurring } from '@/db/repositories/recurring';
 import { formatBudgetAlert } from '@/lib/budgetText';
 import { prettyDate, today } from '@/lib/dates';
 import { configureNotificationHandler, rescheduleReminders } from '@/services/notifications';
+import { useLock } from './LockProvider';
 
 /**
  * Runs when the app opens and whenever it returns to the foreground:
@@ -13,6 +14,16 @@ import { configureNotificationHandler, rescheduleReminders } from '@/services/no
 export function AppStartup() {
   const db = useSQLiteContext();
   const running = useRef(false);
+  const { locked } = useLock();
+  // Messages about what was just added stay hidden while the app is locked.
+  const [pending, setPending] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (pending && !locked) {
+      Alert.alert('Recurring items', pending);
+      setPending(null);
+    }
+  }, [pending, locked]);
 
   useEffect(() => {
     configureNotificationHandler();
@@ -35,7 +46,7 @@ export function AppStartup() {
         }
         for (const e of r.errors) lines.push(`Could not add "${e.ruleName}": ${e.message}`);
         if (r.alerts.length) lines.push(r.alerts.map(formatBudgetAlert).join('\n'));
-        if (lines.length) Alert.alert('Recurring items', lines.join('\n\n'));
+        if (lines.length) setPending((old) => (old ? `${old}\n\n${lines.join('\n\n')}` : lines.join('\n\n')));
       } catch (e) {
         console.warn('Recurring processing failed', e);
       } finally {

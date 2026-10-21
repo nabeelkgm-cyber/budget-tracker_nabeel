@@ -153,7 +153,9 @@ interface InsertExtras {
 
 async function insertRow(db: Db, id: string, input: TransactionInput, extras: InsertExtras = {}) {
   const now = nowIso();
-  const { rate, currency } = await rateFor(db, input.accountId);
+  const current = await rateFor(db, input.accountId);
+  const currency = current.currency;
+  const rate = input.fxRateE8 ?? current.rate;
   const isTransfer = input.type === 'transfer';
   await db.runAsync(
     `INSERT INTO transactions (id,type,date,account_id,amount_minor,fx_rate_e8,base_amount_minor,
@@ -224,7 +226,7 @@ async function insertFee(db: Db, transferId: string, input: TransactionInput) {
 /** Creates the entry (and, for a transfer with a fee, the fee expense) as one unit. */
 export async function createTransaction(db: Db, input: TransactionInput): Promise<string> {
   await check(db, input);
-  const id = newId();
+  const id = input.id && /^[A-Za-z0-9-]{8,64}$/.test(input.id) ? input.id : newId();
   await atomic(db, async () => {
     await insertRow(db, id, input);
     if (input.type === 'transfer' && input.feeMinor && input.feeMinor > 0) {
