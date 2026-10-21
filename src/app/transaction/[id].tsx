@@ -238,8 +238,9 @@ export default function TransactionForm() {
             />
           ) : null}
           <Text style={{ color: t.textMuted, fontSize: 12, marginTop: -6, marginBottom: 14 }}>
-            Transfers (including credit card bill payments) move money between accounts and are not counted as
-            expense or income.
+            Transfers (including credit card bill and loan repayments) move money between accounts and are not
+            counted as expense or income.
+            {toAccount?.type === 'loan' ? ' Record interest or charges as a separate Expense on the loan account.' : ''}
           </Text>
         </>
       ) : (

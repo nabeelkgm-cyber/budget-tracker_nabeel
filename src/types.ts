@@ -1,4 +1,4 @@
-export type AccountType = 'cash' | 'bank' | 'credit_card';
+export type AccountType = 'cash' | 'bank' | 'credit_card' | 'loan';
 export type TxnType = 'expense' | 'income' | 'transfer';
 export type CategoryKind = 'expense' | 'income';
 export type PaymentMethod = 'cash' | 'card' | 'bank_transfer' | 'upi' | 'other';

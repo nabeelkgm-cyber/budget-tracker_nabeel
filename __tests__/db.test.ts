@@ -193,7 +193,7 @@ describe('sample data', () => {
   it('loads, and every account balance equals opening + its transaction effects', async () => {
     await loadSampleData(db);
     const accounts = await listAccounts(db);
-    expect(accounts.length).toBe(6);
+    expect(accounts.length).toBe(8);
     const txns = await listTransactions(db, { limit: 1000 });
     expect(txns.length).toBeGreaterThan(40);
     for (const a of accounts) {
@@ -204,5 +204,40 @@ describe('sample data', () => {
       }
       expect(a.balance_minor).toBe(expected);
     }
+  });
+});
+
+describe('loans / liabilities', () => {
+  it('a loan is an amount owed; repaying by transfer reduces it and is not an expense', async () => {
+    const bank = await acct('CBQ', 'bank', 'QAR', 500000);
+    const loan = await createAccount(db, {
+      name: 'Car loan', type: 'loan', currency: 'QAR', openingBalanceMinor: -3000000,
+      creditLimitMinor: null, statementDay: null, dueDay: 5, icon: 'car', color: '#000',
+    });
+    await createTransaction(db, txn({ type: 'transfer', categoryId: null, accountId: bank, amountMinor: 100000, toAccountId: loan, toAmountMinor: 100000 }));
+    expect(await balance(loan)).toBe(-2900000);
+    expect(await balance(bank)).toBe(400000);
+    const spend = await db.getFirstAsync<{ n: number }>("SELECT COUNT(*) AS n FROM transactions WHERE type = 'expense'");
+    expect(spend?.n).toBe(0);
+  });
+
+  it('interest posted as an expense on the loan increases the amount owed', async () => {
+    const loan = await createAccount(db, {
+      name: 'Home loan', type: 'loan', currency: 'INR', openingBalanceMinor: -500000000,
+      creditLimitMinor: null, statementDay: null, dueDay: null, icon: 'home', color: '#000',
+    });
+    await createTransaction(db, txn({ accountId: loan, amountMinor: 4500000, categoryId: cat.Others, note: 'Interest' }));
+    expect(await balance(loan)).toBe(-504500000);
+  });
+
+  it('borrowing more (transfer from the loan to a bank) raises the debt and the bank balance', async () => {
+    const bank = await acct('HDFC', 'bank', 'INR', 0);
+    const loan = await createAccount(db, {
+      name: 'Personal loan', type: 'loan', currency: 'INR', openingBalanceMinor: 0,
+      creditLimitMinor: null, statementDay: null, dueDay: null, icon: 'cash', color: '#000',
+    });
+    await createTransaction(db, txn({ type: 'transfer', categoryId: null, accountId: loan, amountMinor: 10000000, toAccountId: bank, toAmountMinor: 10000000 }));
+    expect(await balance(loan)).toBe(-10000000);
+    expect(await balance(bank)).toBe(10000000);
   });
 });

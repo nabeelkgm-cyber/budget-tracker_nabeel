@@ -4,9 +4,16 @@ import type { Db } from './types';
  * Each entry upgrades the schema by one version (tracked with PRAGMA user_version).
  * Never edit a released migration: add a new one at the end.
  */
-const MIGRATIONS: string[] = [
+interface Migration {
+  sql: string;
+  /** Needed when a table is rebuilt: SQLite cannot change a CHECK constraint in place. */
+  foreignKeysOff?: boolean;
+}
+
+const MIGRATIONS: Migration[] = [
   // v1: core tables (currencies, accounts, categories, transactions)
-  `
+  {
+    sql: `
   CREATE TABLE settings (
     key   TEXT PRIMARY KEY,
     value TEXT NOT NULL
@@ -79,18 +86,62 @@ const MIGRATIONS: string[] = [
   CREATE INDEX idx_txn_to_acct  ON transactions(to_account_id);
   CREATE INDEX idx_txn_category ON transactions(category_id);
   `,
+  },
+
+  // v2: allow accounts of type 'loan' (liabilities). Existing rows are copied unchanged.
+  {
+    foreignKeysOff: true,
+    sql: `
+  CREATE TABLE accounts_new (
+    id                    TEXT PRIMARY KEY,
+    name                  TEXT NOT NULL,
+    type                  TEXT NOT NULL CHECK (type IN ('cash','bank','credit_card','loan')),
+    currency              TEXT NOT NULL REFERENCES currencies(code),
+    opening_balance_minor INTEGER NOT NULL DEFAULT 0,
+    credit_limit_minor    INTEGER,
+    statement_day         INTEGER CHECK (statement_day BETWEEN 1 AND 31),
+    due_day               INTEGER CHECK (due_day BETWEEN 1 AND 31),
+    icon                  TEXT NOT NULL,
+    color                 TEXT NOT NULL,
+    is_archived           INTEGER NOT NULL DEFAULT 0,
+    sort_order            INTEGER NOT NULL DEFAULT 0,
+    created_at            TEXT NOT NULL,
+    updated_at            TEXT NOT NULL,
+    deleted_at            TEXT
+  );
+  INSERT INTO accounts_new
+    (id,name,type,currency,opening_balance_minor,credit_limit_minor,statement_day,due_day,
+     icon,color,is_archived,sort_order,created_at,updated_at,deleted_at)
+  SELECT id,name,type,currency,opening_balance_minor,credit_limit_minor,statement_day,due_day,
+     icon,color,is_archived,sort_order,created_at,updated_at,deleted_at FROM accounts;
+  DROP TABLE accounts;
+  ALTER TABLE accounts_new RENAME TO accounts;
+  `,
+  },
 ];
 
 export const LATEST_VERSION = MIGRATIONS.length;
 
-export async function migrate(db: Db): Promise<void> {
+/** Upgrades the database to `target` (default: latest). `target` exists so tests can stop early. */
+export async function migrate(db: Db, target: number = LATEST_VERSION): Promise<void> {
   await db.execAsync('PRAGMA foreign_keys = ON;');
   const row = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
   const current = row?.user_version ?? 0;
-  for (let v = current; v < MIGRATIONS.length; v++) {
-    await db.withTransactionAsync(async () => {
-      await db.execAsync(MIGRATIONS[v]);
-      await db.execAsync(`PRAGMA user_version = ${v + 1};`);
-    });
+  for (let v = current; v < Math.min(target, MIGRATIONS.length); v++) {
+    const m = MIGRATIONS[v];
+    // This pragma is ignored inside a transaction, so switch it around the transaction.
+    if (m.foreignKeysOff) await db.execAsync('PRAGMA foreign_keys = OFF;');
+    try {
+      await db.withTransactionAsync(async () => {
+        await db.execAsync(m.sql);
+        if (m.foreignKeysOff) {
+          const broken = await db.getAllAsync<unknown>('PRAGMA foreign_key_check');
+          if (broken.length) throw new Error(`Migration ${v + 1} broke ${broken.length} foreign key(s)`);
+        }
+        await db.execAsync(`PRAGMA user_version = ${v + 1};`);
+      });
+    } finally {
+      if (m.foreignKeysOff) await db.execAsync('PRAGMA foreign_keys = ON;');
+    }
   }
 }

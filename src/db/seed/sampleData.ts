@@ -44,12 +44,13 @@ export async function loadSampleData(db: Db): Promise<void> {
   };
   const acct = (
     name: string,
-    type: 'cash' | 'bank' | 'credit_card',
+    type: 'cash' | 'bank' | 'credit_card' | 'loan',
     currency: string,
     opening: number,
     icon: string,
     color: string,
     card?: { limit: number; statementDay: number; dueDay: number },
+    dueDay?: number,
   ) =>
     createAccount(db, {
       name,
@@ -58,7 +59,7 @@ export async function loadSampleData(db: Db): Promise<void> {
       openingBalanceMinor: opening * MINOR,
       creditLimitMinor: card ? card.limit * MINOR : null,
       statementDay: card?.statementDay ?? null,
-      dueDay: card?.dueDay ?? null,
+      dueDay: card?.dueDay ?? dueDay ?? null,
       icon,
       color,
     });
@@ -77,6 +78,9 @@ export async function loadSampleData(db: Db): Promise<void> {
   });
   const cash = await acct('Cash', 'cash', 'QAR', 600, 'cash', '#22C55E');
   const hdfc = await acct('HDFC Savings', 'bank', 'INR', 250000, 'business', '#3B82F6');
+  // Loans are amounts owed, so the opening balance is negative.
+  const carLoan = await acct('CBQ Car Loan', 'loan', 'QAR', -30000, 'car', '#F97316', undefined, 5);
+  const homeLoan = await acct('HDFC Home Loan', 'loan', 'INR', -2500000, 'home', '#6C63FF', undefined, 10);
 
   const rnd = lcg(42);
   const t0 = today();
@@ -161,6 +165,11 @@ export async function loadSampleData(db: Db): Promise<void> {
       await transfer(day(2), cbq, cash, 600, 600, 'ATM withdrawal');
       // QAR -> INR remittance to own Indian account (cross-currency transfer).
       await transfer(day(10), cbq, hdfc, 1000, 24100, 'To HDFC');
+      // Loan EMIs: principal is a transfer to the loan; interest is an expense on the loan.
+      await transfer(day(5), cbq, carLoan, 1200, 1200, 'Car loan EMI (principal)');
+      await add(day(5), 'expense', carLoan, 150, 'Others', 'Car loan interest', 'bank_transfer');
+      await transfer(day(10), hdfc, homeLoan, 18000, 18000, 'Home loan EMI (principal)');
+      await add(day(10), 'expense', homeLoan, 17000, 'Others', 'Home loan interest', 'bank_transfer');
       await add(day(26), 'expense', hdfc, amt(5000, 15000), 'Others', 'India expenses', 'upi');
     }
   });

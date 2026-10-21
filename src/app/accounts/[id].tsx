@@ -14,6 +14,7 @@ const TYPES: { value: AccountType; label: string; icon: string }[] = [
   { value: 'cash', label: 'Cash', icon: 'cash' },
   { value: 'bank', label: 'Bank', icon: 'business' },
   { value: 'credit_card', label: 'Credit card', icon: 'card' },
+  { value: 'loan', label: 'Loan / liability', icon: 'trending-down' },
 ];
 
 const toDay = (s: string): number | null => {
@@ -48,7 +49,7 @@ export default function AccountForm() {
       setType(a.type);
       setCurrency(a.currency);
       // Cards store "owed" as a negative opening balance; show it as a positive number.
-      setOpening(minorToInput(a.type === 'credit_card' ? -a.opening_balance_minor : a.opening_balance_minor));
+      setOpening(minorToInput(a.type === 'credit_card' || a.type === 'loan' ? -a.opening_balance_minor : a.opening_balance_minor));
       setLimit(a.credit_limit_minor ? minorToInput(a.credit_limit_minor) : '');
       setStmtDay(a.statement_day ? String(a.statement_day) : '');
       setDueDay(a.due_day ? String(a.due_day) : '');
@@ -61,6 +62,8 @@ export default function AccountForm() {
 
   if (!loaded || !currencies) return <Loading />;
   const isCard = type === 'credit_card';
+  const isLoan = type === 'loan';
+  const owes = isCard || isLoan; // balances for these are stored negative (money owed)
 
   const save = async () => {
     if (!name.trim()) return Alert.alert('Name needed', 'Give the account a name.');
@@ -71,10 +74,10 @@ export default function AccountForm() {
     const input = {
       name,
       type,
-      openingBalanceMinor: isCard ? -openingAbs : openingAbs,
+      openingBalanceMinor: owes ? -openingAbs : openingAbs,
       creditLimitMinor: limitMinor,
       statementDay: isCard ? toDay(stmtDay) : null,
-      dueDay: isCard ? toDay(dueDay) : null,
+      dueDay: owes ? toDay(dueDay) : null,
       icon,
       color,
     };
@@ -126,7 +129,7 @@ export default function AccountForm() {
       </ChipRow>
 
       <Field
-        label={isCard ? 'Amount currently owed on card' : 'Opening balance'}
+        label={isCard ? 'Amount currently owed on card' : isLoan ? 'Outstanding amount owed' : 'Opening balance'}
         value={opening}
         onChangeText={setOpening}
         keyboardType="decimal-pad"
@@ -143,6 +146,15 @@ export default function AccountForm() {
               <Field label="Payment due day (1-31)" value={dueDay} onChangeText={setDueDay} keyboardType="number-pad" maxLength={2} />
             </View>
           </View>
+        </>
+      ) : null}
+      {isLoan ? (
+        <>
+          <Field label="EMI / payment due day (optional, 1-31)" value={dueDay} onChangeText={setDueDay} keyboardType="number-pad" maxLength={2} />
+          <Text style={{ color: t.textMuted, fontSize: 12, marginBottom: 14 }}>
+            Enter what you still owe today. Repay with a Transfer from your bank to this loan. To record interest or
+            charges, add an Expense on this loan account (it increases what you owe).
+          </Text>
         </>
       ) : null}
 
