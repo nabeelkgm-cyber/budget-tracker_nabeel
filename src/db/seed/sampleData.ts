@@ -155,8 +155,10 @@ export async function loadSampleData(db: Db): Promise<void> {
       await add(day(20), 'expense', doha, amt(80, 250), 'Health', 'Pharmacy / clinic', 'card');
       await add(day(23), 'expense', cbqCard, 55, 'Entertainment', 'Streaming subscription', 'card');
       // Credit card bill payments are transfers, not expenses.
-      await transfer(day(14), cbq, cbqCard, 1500, 1500, 'Card bill payment');
-      await transfer(day(9), doha, dohaCard, 400, 400, 'Card bill payment');
+      await transfer(day(14), cbq, cbqCard, 1000, 1000, 'Card bill payment');
+      await transfer(day(9), doha, dohaCard, 200, 200, 'Card bill payment');
+      // ATM withdrawal: bank to cash.
+      await transfer(day(2), cbq, cash, 600, 600, 'ATM withdrawal');
       // QAR -> INR remittance to own Indian account (cross-currency transfer).
       await transfer(day(10), cbq, hdfc, 1000, 24100, 'To HDFC');
       await add(day(26), 'expense', hdfc, amt(5000, 15000), 'Others', 'India expenses', 'upi');
