@@ -1,0 +1,19 @@
+{
+  "expo": {
+    "name": "Budget Tracker",
+    "slug": "budget-tracker",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.nabeel.budgettracker"
+    },
+    "scheme": "budgettracker",
+    "plugins": [
+      "expo-router",
+      "expo-sqlite"
+    ]
+  }
+}
