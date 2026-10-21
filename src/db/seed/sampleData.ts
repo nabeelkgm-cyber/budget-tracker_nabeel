@@ -1,9 +1,12 @@
 import dayjs from 'dayjs';
+import { MONTH_FMT } from '@/domain/budget';
 import { DATE_FMT, today } from '@/lib/dates';
 import { MINOR } from '@/domain/money';
 import type { PaymentMethod } from '@/types';
+import { atomic } from '../atomic';
 import { notifyChange } from '../events';
 import { createAccount } from '../repositories/accounts';
+import { upsertBudget } from '../repositories/budgets';
 import { listCategories } from '../repositories/categories';
 import { createTransaction } from '../repositories/transactions';
 import type { Db } from '../types';
@@ -11,8 +14,10 @@ import { seedDefaults } from './defaults';
 
 /** Wipes every table and re-creates currencies and preset categories. */
 export async function eraseAllData(db: Db): Promise<void> {
-  await db.withTransactionAsync(async () => {
+  await atomic(db, async () => {
     await db.execAsync(`
+      DELETE FROM budget_alerts_sent;
+      DELETE FROM budgets;
       DELETE FROM transactions;
       DELETE FROM accounts;
       DELETE FROM categories;
@@ -116,6 +121,7 @@ export async function loadSampleData(db: Db): Promise<void> {
     amount: number,
     toAmount: number,
     note: string,
+    fee?: number,
   ) => {
     const d = date.format(DATE_FMT);
     if (d > t0) return;
@@ -130,14 +136,26 @@ export async function loadSampleData(db: Db): Promise<void> {
       paymentMethod: 'bank_transfer',
       note,
       source: 'sample',
+      feeMinor: fee ? Math.round(fee * MINOR) : null,
     });
   };
   const amt = (min: number, max: number) => Math.round(min + rnd() * (max - min));
 
-  await db.withTransactionAsync(async () => {
+  await atomic(db, async () => {
     for (let back = 2; back >= 0; back--) {
       const m = dayjs().startOf('month').subtract(back, 'month');
       const day = (n: number) => m.add(n - 1, 'day');
+
+      // Monthly budgets (QAR). Groceries rolls unused budget over.
+      const month = m.format(MONTH_FMT);
+      const budgets: [string, number, boolean?][] = [
+        ['Rent', 3800], ['Groceries', 1200, true], ['Dining', 500], ['Fuel', 300], ['Utilities', 500],
+        ['Shopping', 600], ['Transport', 150], ['Health', 300], ['Entertainment', 100],
+        ['Family Remittance', 2000], ['Savings', 1000],
+      ];
+      for (const [name, amount, rollover] of budgets) {
+        await upsertBudget(db, { month, categoryId: cat(name), amountMinor: amount * MINOR, rollover: !!rollover });
+      }
 
       await add(day(1), 'income', cbq, 14500, 'Salary', 'Monthly salary', 'bank_transfer');
       await add(day(2), 'expense', cbq, 3800, 'Rent', 'Apartment rent', 'bank_transfer');
@@ -164,12 +182,12 @@ export async function loadSampleData(db: Db): Promise<void> {
       // ATM withdrawal: bank to cash.
       await transfer(day(2), cbq, cash, 600, 600, 'ATM withdrawal');
       // QAR -> INR remittance to own Indian account (cross-currency transfer).
-      await transfer(day(10), cbq, hdfc, 1000, 24100, 'To HDFC');
+      await transfer(day(10), cbq, hdfc, 1000, 24100, 'To HDFC', 25);
       // Loan EMIs: principal is a transfer to the loan; interest is an expense on the loan.
       await transfer(day(5), cbq, carLoan, 1200, 1200, 'Car loan EMI (principal)');
-      await add(day(5), 'expense', carLoan, 150, 'Others', 'Car loan interest', 'bank_transfer');
+      await add(day(5), 'expense', carLoan, 150, 'Loan Interest', 'Car loan interest', 'bank_transfer');
       await transfer(day(10), hdfc, homeLoan, 18000, 18000, 'Home loan EMI (principal)');
-      await add(day(10), 'expense', homeLoan, 17000, 'Others', 'Home loan interest', 'bank_transfer');
+      await add(day(10), 'expense', homeLoan, 17000, 'Loan Interest', 'Home loan interest', 'bank_transfer');
       await add(day(26), 'expense', hdfc, amt(5000, 15000), 'Others', 'India expenses', 'upi');
     }
   });

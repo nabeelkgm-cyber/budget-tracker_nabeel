@@ -56,4 +56,27 @@ describe('migration v1 -> v2 (loan accounts)', () => {
     ).rejects.toThrow(/FOREIGN KEY/i);
     expect(await listAccounts(db)).toHaveLength(2);
   });
+
+  it('adds Loan Interest and Bank Charges once to an existing database, and keeps the budget tables', async () => {
+    const db = createTestDb();
+    await migrate(db, 2);
+    await seedDefaults(db); // pre-Phase-3 preset list is not what seedDefaults inserts now, so remove them
+    await db.runAsync("DELETE FROM categories WHERE name IN ('Loan Interest','Bank Charges')");
+    await migrate(db);
+    await migrate(db);
+    const names = (await listCategories(db)).map((c) => c.name);
+    expect(names.filter((n) => n === 'Loan Interest')).toHaveLength(1);
+    expect(names.filter((n) => n === 'Bank Charges')).toHaveLength(1);
+    const tables = await db.getAllAsync<{ name: string }>("SELECT name FROM sqlite_master WHERE type='table'");
+    expect(tables.map((x) => x.name)).toEqual(expect.arrayContaining(['budgets', 'budget_alerts_sent']));
+  });
+
+  it('a fresh install has each preset exactly once', async () => {
+    const db = createTestDb();
+    await migrate(db);
+    await seedDefaults(db);
+    const names = (await listCategories(db)).map((c) => c.name);
+    expect(new Set(names).size).toBe(names.length);
+    expect(names).toEqual(expect.arrayContaining(['Loan Interest', 'Bank Charges']));
+  });
 });

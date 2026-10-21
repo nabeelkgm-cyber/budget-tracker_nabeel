@@ -15,6 +15,9 @@ export function validateTransaction(
   }
   const account = accounts.find((a) => a.id === input.accountId);
   if (!account) return 'Choose an account.';
+  if (input.feeMinor != null && (!Number.isSafeInteger(input.feeMinor) || input.feeMinor < 0)) {
+    return 'The fee must be zero or more.';
+  }
 
   if (input.type === 'transfer') {
     const to = accounts.find((a) => a.id === input.toAccountId);

@@ -69,3 +69,24 @@ describe('rates', () => {
     expect(rateE8ToForeignPerBase(100_000_000)).toBe('1.0000');
   });
 });
+
+import { impliedRate } from '@/domain/money';
+
+describe('impliedRate', () => {
+  it('QAR sent, INR received: 1 QAR = X INR', () => {
+    const r = impliedRate(100000, 'QAR', 2410000, 'INR', 'QAR')!;
+    expect(r.label).toBe('1 QAR = 24.1000 INR');
+    expect(r.foreignCurrency).toBe('INR');
+  });
+  it('INR sent, QAR received is shown the same way round', () => {
+    expect(impliedRate(2410000, 'INR', 100000, 'QAR', 'QAR')!.label).toBe('1 QAR = 24.1000 INR');
+  });
+  it('rounds to 4 decimals', () => {
+    expect(impliedRate(30000, 'QAR', 724999, 'INR', 'QAR')!.value).toBe('24.1666');
+  });
+  it('is null for the same currency or zero amounts', () => {
+    expect(impliedRate(1000, 'QAR', 1000, 'QAR', 'QAR')).toBeNull();
+    expect(impliedRate(0, 'QAR', 1000, 'INR', 'QAR')).toBeNull();
+    expect(impliedRate(1000, 'QAR', 0, 'INR', 'QAR')).toBeNull();
+  });
+});

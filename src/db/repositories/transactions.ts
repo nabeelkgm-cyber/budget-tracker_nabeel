@@ -3,6 +3,7 @@ import { validateTransaction } from '@/domain/transactionRules';
 import { today } from '@/lib/dates';
 import { newId, nowIso } from '@/lib/id';
 import type { Transaction, TransactionInput, TransactionRow, TxnType } from '@/types';
+import { atomic } from '../atomic';
 import { notifyChange } from '../events';
 import type { Db } from '../types';
 import { listAccounts } from './accounts';
@@ -134,17 +135,19 @@ async function check(db: Db, input: TransactionInput): Promise<void> {
   if (error) throw new Error(error);
 }
 
-export async function createTransaction(db: Db, input: TransactionInput): Promise<string> {
-  await check(db, input);
-  const id = newId();
+interface InsertExtras {
+  linkedTxnId?: string | null;
+}
+
+async function insertRow(db: Db, id: string, input: TransactionInput, extras: InsertExtras = {}) {
   const now = nowIso();
   const rate = await rateFor(db, input.accountId);
   const isTransfer = input.type === 'transfer';
   await db.runAsync(
     `INSERT INTO transactions (id,type,date,account_id,amount_minor,fx_rate_e8,base_amount_minor,
-       category_id,to_account_id,to_amount_minor,payment_method,note,source,external_ref,fingerprint,
-       created_at,updated_at)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+       category_id,to_account_id,to_amount_minor,payment_method,note,linked_txn_id,source,external_ref,
+       fingerprint,created_at,updated_at)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
     [
       id,
       input.type,
@@ -158,6 +161,7 @@ export async function createTransaction(db: Db, input: TransactionInput): Promis
       isTransfer ? input.toAmountMinor : null,
       input.paymentMethod,
       input.note.trim(),
+      extras.linkedTxnId ?? null,
       input.source ?? 'manual',
       input.externalRef ?? null,
       input.fingerprint ?? null,
@@ -165,6 +169,54 @@ export async function createTransaction(db: Db, input: TransactionInput): Promis
       now,
     ],
   );
+}
+
+async function feeCategoryId(db: Db): Promise<string> {
+  const row = await db.getFirstAsync<{ id: string }>(
+    `SELECT id FROM categories
+     WHERE name = 'Bank Charges' AND kind = 'expense' AND parent_id IS NULL AND deleted_at IS NULL`,
+  );
+  if (!row) throw new Error('The "Bank Charges" category is missing. Add it under More > Categories.');
+  return row.id;
+}
+
+/** The fee expense saved together with a transfer, if any. */
+export const getLinkedFee = (db: Db, transferId: string) =>
+  db.getFirstAsync<Transaction>(
+    'SELECT * FROM transactions WHERE linked_txn_id = ? AND deleted_at IS NULL',
+    [transferId],
+  );
+
+async function insertFee(db: Db, transferId: string, input: TransactionInput) {
+  await insertRow(
+    db,
+    newId(),
+    {
+      type: 'expense',
+      date: input.date,
+      accountId: input.accountId,
+      amountMinor: input.feeMinor!,
+      categoryId: await feeCategoryId(db),
+      toAccountId: null,
+      toAmountMinor: null,
+      paymentMethod: 'bank_transfer',
+      note: 'Transfer fee',
+      source: input.source,
+    },
+    { linkedTxnId: transferId },
+  );
+}
+
+/** Creates the entry (and, for a transfer with a fee, the fee expense) as one unit. */
+export async function createTransaction(db: Db, input: TransactionInput): Promise<string> {
+  await check(db, input);
+  const id = newId();
+  await atomic(db, async () => {
+    await insertRow(db, id, input);
+    if (input.type === 'transfer' && input.feeMinor && input.feeMinor > 0) {
+      await insertFee(db, id, input);
+    }
+  });
   notifyChange();
   return id;
 }
@@ -183,40 +235,76 @@ export async function updateTransaction(
       ? existing.fx_rate_e8
       : await rateFor(db, input.accountId);
   const isTransfer = input.type === 'transfer';
-  await db.runAsync(
-    `UPDATE transactions SET type=?, date=?, account_id=?, amount_minor=?, fx_rate_e8=?,
-       base_amount_minor=?, category_id=?, to_account_id=?, to_amount_minor=?, payment_method=?,
-       note=?, updated_at=? WHERE id=?`,
-    [
-      input.type,
-      input.date,
-      input.accountId,
-      input.amountMinor,
-      rate,
-      convertMinor(input.amountMinor, rate),
-      isTransfer ? null : input.categoryId,
-      isTransfer ? input.toAccountId : null,
-      isTransfer ? input.toAmountMinor : null,
-      input.paymentMethod,
-      input.note.trim(),
-      nowIso(),
-      id,
-    ],
-  );
+  await atomic(db, async () => {
+    await db.runAsync(
+      `UPDATE transactions SET type=?, date=?, account_id=?, amount_minor=?, fx_rate_e8=?,
+         base_amount_minor=?, category_id=?, to_account_id=?, to_amount_minor=?, payment_method=?,
+         note=?, updated_at=? WHERE id=?`,
+      [
+        input.type,
+        input.date,
+        input.accountId,
+        input.amountMinor,
+        rate,
+        convertMinor(input.amountMinor, rate),
+        isTransfer ? null : input.categoryId,
+        isTransfer ? input.toAccountId : null,
+        isTransfer ? input.toAmountMinor : null,
+        input.paymentMethod,
+        input.note.trim(),
+        nowIso(),
+        id,
+      ],
+    );
+
+    // Keep the linked fee in step with the transfer.
+    const fee = await getLinkedFee(db, id);
+    const wantFee = isTransfer && !!input.feeMinor && input.feeMinor > 0;
+    if (wantFee && fee) {
+      const feeRate =
+        fee.account_id === input.accountId ? fee.fx_rate_e8 : await rateFor(db, input.accountId);
+      await db.runAsync(
+        `UPDATE transactions SET date=?, account_id=?, amount_minor=?, fx_rate_e8=?,
+           base_amount_minor=?, updated_at=? WHERE id=?`,
+        [
+          input.date,
+          input.accountId,
+          input.feeMinor!,
+          feeRate,
+          convertMinor(input.feeMinor!, feeRate),
+          nowIso(),
+          fee.id,
+        ],
+      );
+    } else if (wantFee) {
+      await insertFee(db, id, input);
+    } else if (fee) {
+      await softDelete(db, fee.id);
+    }
+  });
   notifyChange();
 }
 
-/** Soft delete, so a future sync can propagate the deletion. */
-export async function deleteTransaction(db: Db, id: string): Promise<void> {
+async function softDelete(db: Db, id: string): Promise<void> {
   const now = nowIso();
   await db.runAsync('UPDATE transactions SET deleted_at=?, updated_at=? WHERE id=?', [now, now, id]);
+}
+
+/** Soft delete (so a future sync can propagate it). A transfer's fee goes with it. */
+export async function deleteTransaction(db: Db, id: string): Promise<void> {
+  await atomic(db, async () => {
+    const fee = await getLinkedFee(db, id);
+    if (fee) await softDelete(db, fee.id);
+    await softDelete(db, id);
+  });
   notifyChange();
 }
 
-/** Copies a transaction dated today (at the current rate) and returns the new id. */
+/** Copies a transaction (and a transfer's fee) dated today at the current rate; returns the new id. */
 export async function duplicateTransaction(db: Db, id: string): Promise<string> {
   const t = await getTransaction(db, id);
   if (!t) throw new Error('Transaction not found.');
+  const fee = t.type === 'transfer' ? await getLinkedFee(db, id) : null;
   return createTransaction(db, {
     type: t.type,
     date: today(),
@@ -227,5 +315,6 @@ export async function duplicateTransaction(db: Db, id: string): Promise<string> 
     toAmountMinor: t.to_amount_minor,
     paymentMethod: t.payment_method,
     note: t.note,
+    feeMinor: fee?.amount_minor ?? null,
   });
 }

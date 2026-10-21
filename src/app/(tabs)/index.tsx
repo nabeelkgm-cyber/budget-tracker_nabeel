@@ -2,11 +2,14 @@ import { router } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { Alert, Text, View } from 'react-native';
 import { Button, Card, Divider, EmptyText, Fab, IconCircle, Loading, Row, Screen, SectionTitle } from '@/components/ui';
+import { BudgetBar, stateColor } from '@/components/BudgetBar';
 import { TransactionRow } from '@/components/TransactionRow';
 import { formatPercent, savingsOf, savingsRatePercent } from '@/domain/summary';
 import { convertMinor, formatMinor } from '@/domain/money';
 import { listAccounts } from '@/db/repositories/accounts';
+import { getMonthBudget } from '@/db/repositories/budgets';
 import { listCurrencies } from '@/db/repositories/currencies';
+import { currentMonth } from '@/domain/budget';
 import { listTransactions, summarizeTransactions } from '@/db/repositories/transactions';
 import { loadSampleData } from '@/db/seed/sampleData';
 import { useDbQuery } from '@/hooks/useDbQuery';
@@ -24,10 +27,11 @@ export default function HomeScreen() {
       currencies: await listCurrencies(db),
       month: await summarizeTransactions(db, { dateFrom: from, dateTo: to }),
       recent: await listTransactions(db, { limit: 5 }),
+      budget: await getMonthBudget(db, currentMonth()),
     };
   });
   if (!data) return <Loading />;
-  const { accounts, currencies, month, recent } = data;
+  const { accounts, currencies, month, recent, budget } = data;
   const savings = savingsOf(month.incomeMinor, month.expenseMinor);
   const rate = savingsRatePercent(month.incomeMinor, month.expenseMinor);
 
@@ -97,6 +101,51 @@ export default function HomeScreen() {
         <Text style={{ color: t.textMuted, fontSize: 12, marginTop: 12 }}>
           Transfers are not counted. Foreign-currency entries are in {BASE_CURRENCY} at the rate used when entered.
         </Text>
+      </Card>
+
+      <SectionTitle>Budget this month</SectionTitle>
+      <Card>
+        {budget.rows.length === 0 ? (
+          <Row title="No budget set for this month" subtitle="Tap to set up budgets" onPress={() => router.push('/budget')} />
+        ) : (
+          <View style={{ padding: 14, gap: 12 }}>
+            <View>
+              <Text style={{ color: t.textMuted, fontWeight: '600' }}>
+                {budget.totals.remainingMinor >= 0 ? 'Remaining overall' : 'Over budget by'}
+              </Text>
+              <Text style={{ color: stateColor(budget.totals.state, t), fontSize: 22, fontWeight: '800', marginVertical: 2 }}>
+                {formatMinor(Math.abs(budget.totals.remainingMinor), BASE_CURRENCY)}
+              </Text>
+              <BudgetBar pct={budget.totals.pct} state={budget.totals.state} height={10} />
+              <Text style={{ color: t.textMuted, fontSize: 12, marginTop: 4 }}>
+                {formatMinor(budget.totals.spentMinor, BASE_CURRENCY)} of{' '}
+                {formatMinor(budget.totals.availableMinor, BASE_CURRENCY)} · {budget.totals.pct}% used
+              </Text>
+            </View>
+            {[...budget.rows]
+              .sort((a, b) => b.pct - a.pct)
+              .slice(0, 5)
+              .map((r) => (
+                <View key={r.categoryId} style={{ gap: 4 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <Text style={{ color: t.text, fontWeight: '600' }}>{r.categoryName}</Text>
+                    <Text style={{ color: stateColor(r.state, t), fontWeight: '700' }}>
+                      {r.remainingMinor >= 0
+                        ? `${formatMinor(r.remainingMinor, BASE_CURRENCY)} left`
+                        : `Over by ${formatMinor(-r.remainingMinor, BASE_CURRENCY)}`}
+                    </Text>
+                  </View>
+                  <BudgetBar pct={r.pct} state={r.state} height={6} />
+                </View>
+              ))}
+          </View>
+        )}
+        {budget.rows.length > 0 ? (
+          <>
+            <Divider />
+            <Row title="See all budgets" onPress={() => router.push('/budget')} />
+          </>
+        ) : null}
       </Card>
 
       <SectionTitle>Recent transactions</SectionTitle>

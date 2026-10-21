@@ -62,12 +62,12 @@ describe('migrations and seed', () => {
     await seedDefaults(fresh);
     await seedDefaults(fresh);
     const n = await fresh.getFirstAsync<{ n: number }>('SELECT COUNT(*) AS n FROM categories');
-    expect(n?.n).toBe(15);
+    expect(n?.n).toBe(17);
   });
   it('seeds the preset categories, QAR and INR', async () => {
     const names = Object.keys(cat);
     for (const n of ['Rent', 'Groceries', 'Fuel', 'Utilities', 'Dining', 'Transport',
-      'Family Remittance', 'Shopping', 'Health', 'Education', 'Entertainment', 'Savings', 'Others']) {
+      'Family Remittance', 'Shopping', 'Health', 'Education', 'Entertainment', 'Savings', 'Others', 'Loan Interest', 'Bank Charges']) {
       expect(names).toContain(n);
     }
     const cur = await db.getAllAsync<{ code: string }>('SELECT code FROM currencies ORDER BY code');
@@ -239,5 +239,77 @@ describe('loans / liabilities', () => {
     await createTransaction(db, txn({ type: 'transfer', categoryId: null, accountId: loan, amountMinor: 10000000, toAccountId: bank, toAmountMinor: 10000000 }));
     expect(await balance(loan)).toBe(-10000000);
     expect(await balance(bank)).toBe(10000000);
+  });
+});
+
+describe('transfer fee', () => {
+  const transferInput = (from: string, to: string, extra: Partial<TransactionInput> = {}) =>
+    txn({ type: 'transfer', categoryId: null, accountId: from, amountMinor: 100000, toAccountId: to, toAmountMinor: 2410000, ...extra });
+
+  it('creates a Bank Charges expense on the From account, linked to the transfer', async () => {
+    const q = await acct('CBQ', 'bank', 'QAR', 500000);
+    const i = await acct('HDFC', 'bank', 'INR', 0);
+    const id = await createTransaction(db, transferInput(q, i, { feeMinor: 2500 }));
+    expect(await balance(q)).toBe(500000 - 100000 - 2500);
+    expect(await balance(i)).toBe(2410000);
+    const fee = (await listTransactions(db)).find((t) => t.linked_txn_id === id)!;
+    expect([fee.type, fee.category_name, fee.amount_minor, fee.account_id]).toEqual(['expense', 'Bank Charges', 2500, q]);
+  });
+
+  it('no fee when zero or empty', async () => {
+    const q = await acct('CBQ', 'bank', 'QAR', 500000);
+    const i = await acct('HDFC', 'bank', 'INR', 0);
+    await createTransaction(db, transferInput(q, i, { feeMinor: 0 }));
+    await createTransaction(db, transferInput(q, i));
+    expect((await listTransactions(db)).filter((t) => t.type === 'expense')).toHaveLength(0);
+  });
+
+  it('editing the fee updates, adds or removes it', async () => {
+    const q = await acct('CBQ', 'bank', 'QAR', 500000);
+    const i = await acct('HDFC', 'bank', 'INR', 0);
+    const id = await createTransaction(db, transferInput(q, i));
+    await updateTransaction(db, id, transferInput(q, i, { feeMinor: 3000 })); // add
+    expect(await balance(q)).toBe(500000 - 100000 - 3000);
+    await updateTransaction(db, id, transferInput(q, i, { feeMinor: 4000 })); // change
+    expect(await balance(q)).toBe(500000 - 100000 - 4000);
+    expect((await listTransactions(db)).filter((t) => t.type === 'expense')).toHaveLength(1);
+    await updateTransaction(db, id, transferInput(q, i, { feeMinor: null })); // remove
+    expect(await balance(q)).toBe(400000);
+    expect((await listTransactions(db)).filter((t) => t.type === 'expense')).toHaveLength(0);
+  });
+
+  it('turning a transfer into an expense drops its fee', async () => {
+    const q = await acct('CBQ', 'bank', 'QAR', 500000);
+    const i = await acct('HDFC', 'bank', 'INR', 0);
+    const id = await createTransaction(db, transferInput(q, i, { feeMinor: 2500 }));
+    await updateTransaction(db, id, txn({ accountId: q, amountMinor: 1000 }));
+    expect((await listTransactions(db)).filter((t) => t.category_name === 'Bank Charges')).toHaveLength(0);
+  });
+
+  it('deleting the transfer deletes its fee; duplicating copies it', async () => {
+    const q = await acct('CBQ', 'bank', 'QAR', 500000);
+    const i = await acct('HDFC', 'bank', 'INR', 0);
+    const id = await createTransaction(db, transferInput(q, i, { feeMinor: 2500 }));
+    const copy = await duplicateTransaction(db, id);
+    expect(await balance(q)).toBe(500000 - 2 * (100000 + 2500));
+    await deleteTransaction(db, copy);
+    expect(await balance(q)).toBe(500000 - 100000 - 2500);
+    await deleteTransaction(db, id);
+    expect(await balance(q)).toBe(500000);
+    expect(await listTransactions(db)).toHaveLength(0);
+  });
+
+  it('a fee in an INR account uses that account currency and is counted in QAR', async () => {
+    const i = await acct('HDFC', 'bank', 'INR', 10000000);
+    const q = await acct('CBQ', 'bank', 'QAR', 0);
+    const id = await createTransaction(db, transferInput(i, q, { amountMinor: 2410000, toAmountMinor: 100000, feeMinor: 50000 }));
+    const fee = (await listTransactions(db)).find((t) => t.linked_txn_id === id)!;
+    expect([fee.account_currency, fee.base_amount_minor]).toEqual(['INR', 2065]); // INR 500 @0.0413
+  });
+
+  it('rejects a negative fee', async () => {
+    const q = await acct('CBQ', 'bank', 'QAR', 0);
+    const i = await acct('HDFC', 'bank', 'INR', 0);
+    await expect(createTransaction(db, transferInput(q, i, { feeMinor: -5 }))).rejects.toThrow(/fee/);
   });
 });

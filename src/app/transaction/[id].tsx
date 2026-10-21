@@ -4,18 +4,22 @@ import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useMemo, useState } from 'react';
 import { Alert, Text, View } from 'react-native';
 import { Button, Chip, ChipRow, Field, Label, Loading, Screen, Segmented } from '@/components/ui';
-import { convertMinor, formatMinor, minorToInput, parseAmountToMinor } from '@/domain/money';
+import { monthOf } from '@/domain/budget';
+import { convertMinor, formatMinor, impliedRate, minorToInput, parseAmountToMinor, rateE8ToForeignPerBase } from '@/domain/money';
 import { listAccounts } from '@/db/repositories/accounts';
+import { BudgetAlert, checkBudgetAlerts } from '@/db/repositories/budgets';
 import { listCategories } from '@/db/repositories/categories';
 import { listCurrencies } from '@/db/repositories/currencies';
 import {
   createTransaction,
   deleteTransaction,
   duplicateTransaction,
+  getLinkedFee,
   getTransaction,
   updateTransaction,
 } from '@/db/repositories/transactions';
 import { useDbQuery } from '@/hooks/useDbQuery';
+import { formatBudgetAlert } from '@/lib/budgetText';
 import { fromLocalDate, prettyDate, toLocalDate, today } from '@/lib/dates';
 import { useTheme } from '@/theme';
 import { BASE_CURRENCY, PaymentMethod, TxnType } from '@/types';
@@ -50,6 +54,8 @@ export default function TransactionForm() {
   const [date, setDate] = useState(today());
   const [note, setNote] = useState('');
   const [method, setMethod] = useState<PaymentMethod>('card');
+  const [feeText, setFeeText] = useState('');
+  const [originalDate, setOriginalDate] = useState(today());
   const [saving, setSaving] = useState(false);
 
   // Load an existing transaction once.
@@ -64,8 +70,12 @@ export default function TransactionForm() {
       setToAccountId(x.to_account_id);
       setToAmount(x.to_amount_minor ? minorToInput(x.to_amount_minor) : '');
       setDate(x.date);
+      setOriginalDate(x.date);
       setNote(x.note);
       setMethod(x.payment_method);
+      if (x.type === 'transfer') {
+        getLinkedFee(db, id).then((fee) => setFeeText(fee ? minorToInput(fee.amount_minor) : ''));
+      }
       setReady(true);
     });
   }, [db, id, isNew]);
@@ -101,6 +111,23 @@ export default function TransactionForm() {
   const amountMinor = parseAmountToMinor(amount);
   const rate = ref.currencies.find((c) => c.code === account?.currency)?.rate_to_base_e8;
 
+  const toAmountMinor = sameCurrency ? amountMinor : parseAmountToMinor(toAmount);
+  const implied =
+    type === 'transfer' && account && toAccount && !sameCurrency && amountMinor && toAmountMinor
+      ? impliedRate(amountMinor, account.currency, toAmountMinor, toAccount.currency, BASE_CURRENCY)
+      : null;
+  const manualRate = implied
+    ? ref.currencies.find((c) => c.code === implied.foreignCurrency)?.rate_to_base_e8
+    : undefined;
+  const manualRateText = manualRate ? rateE8ToForeignPerBase(manualRate) : null;
+  const rateDiff =
+    implied && manualRateText
+      ? (() => {
+          const d = ((Number(implied.value) - Number(manualRateText)) / Number(manualRateText)) * 100;
+          return `${d >= 0 ? '+' : ''}${d.toFixed(2)}% vs manual`;
+        })()
+      : null;
+
   const changeType = (next: TxnType) => {
     setType(next);
     setCategoryId(null);
@@ -119,15 +146,32 @@ export default function TransactionForm() {
       type !== 'transfer' ? null : sameCurrency ? (amountMinor ?? 0) : parseAmountToMinor(toAmount),
     paymentMethod: method,
     note,
+    feeMinor: type === 'transfer' && feeText.trim() !== '' ? parseAmountToMinor(feeText) : null,
   });
+
+  /** Shows any newly reached budget thresholds, then runs `next`. */
+  const showAlerts = (alerts: BudgetAlert[], next: () => void) => {
+    if (alerts.length === 0) return next();
+    Alert.alert('Budget alert', alerts.map(formatBudgetAlert).join('\n\n'), [{ text: 'OK', onPress: next }]);
+  };
+
+  const checkAlerts = async (...dates: string[]) => {
+    const alerts: BudgetAlert[] = [];
+    for (const m of new Set(dates.map(monthOf))) alerts.push(...(await checkBudgetAlerts(db, m)));
+    return alerts;
+  };
 
   const save = async () => {
     if (amountMinor === null) return Alert.alert('Invalid amount', 'Enter an amount like 125.50 (max 2 decimals).');
+    if (type === 'transfer' && feeText.trim() !== '' && parseAmountToMinor(feeText) === null) {
+      return Alert.alert('Invalid fee', 'Enter the fee like 25.00, or leave it empty.');
+    }
     setSaving(true);
     try {
       if (isNew) await createTransaction(db, buildInput());
       else await updateTransaction(db, id, buildInput());
-      router.back();
+      const alerts = await checkAlerts(date, originalDate);
+      showAlerts(alerts, () => router.back());
     } catch (e) {
       Alert.alert('Check the entry', String(e instanceof Error ? e.message : e));
       setSaving(false);
@@ -137,7 +181,8 @@ export default function TransactionForm() {
   const duplicate = async () => {
     try {
       const newId = await duplicateTransaction(db, id);
-      router.replace(`/transaction/${newId}`);
+      const alerts = await checkAlerts(today());
+      showAlerts(alerts, () => router.replace(`/transaction/${newId}`));
     } catch (e) {
       Alert.alert('Could not duplicate', String(e instanceof Error ? e.message : e));
     }
@@ -151,6 +196,7 @@ export default function TransactionForm() {
         style: 'destructive',
         onPress: async () => {
           await deleteTransaction(db, id);
+          await checkAlerts(date); // clears alert flags that no longer apply
           router.back();
         },
       },
@@ -236,6 +282,29 @@ export default function TransactionForm() {
               keyboardType="decimal-pad"
               placeholder="0.00"
             />
+          ) : null}
+          {implied ? (
+            <View style={{ marginTop: -6, marginBottom: 14 }}>
+              <Text style={{ color: t.text, fontWeight: '700' }}>Rate you got: {implied.label}</Text>
+              {manualRateText ? (
+                <Text style={{ color: t.textMuted, fontSize: 12 }}>
+                  Your manual rate: 1 {BASE_CURRENCY} = {manualRateText} {implied.foreignCurrency}
+                  {rateDiff ? ` (${rateDiff})` : ''}
+                </Text>
+              ) : null}
+            </View>
+          ) : null}
+          <Field
+            label={`Transfer fee in ${account?.currency ?? ''} (optional)`}
+            value={feeText}
+            onChangeText={setFeeText}
+            keyboardType="decimal-pad"
+            placeholder="0.00"
+          />
+          {feeText.trim() !== '' ? (
+            <Text style={{ color: t.textMuted, fontSize: 12, marginTop: -8, marginBottom: 14 }}>
+              Taken from the From account and saved as a Bank Charges expense.
+            </Text>
           ) : null}
           <Text style={{ color: t.textMuted, fontSize: 12, marginTop: -6, marginBottom: 14 }}>
             Transfers (including credit card bill and loan repayments) move money between accounts and are not

@@ -17,6 +17,7 @@ export default function TabsLayout() {
     <Tabs screenOptions={{ tabBarActiveTintColor: t.primary, headerRight: addButton }}>
       <Tabs.Screen name="index" options={{ title: 'Home', tabBarIcon: icon('home') }} />
       <Tabs.Screen name="transactions" options={{ title: 'Transactions', tabBarIcon: icon('list') }} />
+      <Tabs.Screen name="budget" options={{ title: 'Budget', headerRight: undefined, tabBarIcon: icon('pie-chart') }} />
       <Tabs.Screen name="more" options={{ title: 'More', headerRight: undefined, tabBarIcon: icon('menu') }} />
     </Tabs>
   );

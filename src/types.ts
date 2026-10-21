@@ -60,6 +60,8 @@ export interface Transaction {
   payment_method: PaymentMethod;
   note: string;
   recurring_id: string | null;
+  /** For a transfer fee: the id of the transfer it belongs to. */
+  linked_txn_id: string | null;
   source: string;
   external_ref: string | null;
   fingerprint: string | null;
@@ -90,4 +92,6 @@ export interface TransactionInput {
   source?: string;
   externalRef?: string | null;
   fingerprint?: string | null;
+  /** Transfers only: optional fee charged on the From account, saved as a Bank Charges expense. */
+  feeMinor?: number | null;
 }

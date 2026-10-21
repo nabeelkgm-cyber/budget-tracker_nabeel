@@ -70,3 +70,43 @@ export function rateE8ToForeignPerBase(rateE8: number): string {
   const scaled = (x + 5000n) / 10000n; // 4 decimals
   return `${scaled / 10000n}.${String(scaled % 10000n).padStart(4, '0')}`;
 }
+
+export interface ImpliedRate {
+  /** e.g. "1 QAR = 24.1000 INR" */
+  label: string;
+  /** The number in the label, with 4 decimals. */
+  value: string;
+  /** The currency quoted per unit of the first currency in the label. */
+  foreignCurrency: string;
+}
+
+function ratio4(numerator: number, denominator: number): string {
+  const n = BigInt(numerator) * 10_000n;
+  const d = BigInt(denominator);
+  const scaled = (n + d / 2n) / d;
+  return `${scaled / 10_000n}.${String(scaled % 10_000n).padStart(4, '0')}`;
+}
+
+/**
+ * The exchange rate you actually got on a cross-currency transfer, in the form people quote it:
+ * "1 QAR = X INR". If neither side is the base currency, it is "1 <from> = X <to>".
+ */
+export function impliedRate(
+  fromMinor: number,
+  fromCurrency: string,
+  toMinor: number,
+  toCurrency: string,
+  baseCurrency: string,
+): ImpliedRate | null {
+  if (fromMinor <= 0 || toMinor <= 0 || fromCurrency === toCurrency) return null;
+  if (toCurrency === baseCurrency) {
+    const v = ratio4(fromMinor, toMinor);
+    return { label: `1 ${baseCurrency} = ${v} ${fromCurrency}`, value: v, foreignCurrency: fromCurrency };
+  }
+  const v = ratio4(toMinor, fromMinor);
+  return {
+    label: `1 ${fromCurrency} = ${v} ${toCurrency}`,
+    value: v,
+    foreignCurrency: toCurrency,
+  };
+}

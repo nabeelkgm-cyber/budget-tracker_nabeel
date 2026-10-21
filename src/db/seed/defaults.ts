@@ -18,6 +18,8 @@ const EXPENSE_CATEGORIES: [name: string, icon: string, color: string][] = [
   ['Entertainment', 'film', '#A855F7'],
   ['Savings', 'wallet', '#22C55E'],
   ['Others', 'ellipsis-horizontal-circle', '#64748B'],
+  ['Loan Interest', 'trending-up', '#F97316'],
+  ['Bank Charges', 'receipt', '#64748B'],
 ];
 
 const INCOME_CATEGORIES: [name: string, icon: string, color: string][] = [
