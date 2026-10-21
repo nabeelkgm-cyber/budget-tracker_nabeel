@@ -21,3 +21,12 @@ export function toLocalDate(date: string): Date {
 export function fromLocalDate(d: Date): string {
   return dayjs(d).format(DATE_FMT);
 }
+
+/** First and last day (inclusive) of the month containing `date`. */
+export function monthRange(date: string): { from: string; to: string } {
+  const d = dayjs(date);
+  return { from: d.startOf('month').format(DATE_FMT), to: d.endOf('month').format(DATE_FMT) };
+}
+
+/** "2026-10-21" -> "October 2026" */
+export const monthLabel = (date: string): string => dayjs(date).format('MMMM YYYY');

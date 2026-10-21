@@ -1,41 +1,113 @@
-import { convertMinor } from '@/domain/money';
+import { convertMinor, parseAmountToMinor } from '@/domain/money';
 import { validateTransaction } from '@/domain/transactionRules';
 import { today } from '@/lib/dates';
 import { newId, nowIso } from '@/lib/id';
-import type { Transaction, TransactionInput, TransactionRow } from '@/types';
+import type { Transaction, TransactionInput, TransactionRow, TxnType } from '@/types';
 import { notifyChange } from '../events';
 import type { Db } from '../types';
 import { listAccounts } from './accounts';
 import { listCategories } from './categories';
 
-const ROW_SQL = `
-  SELECT t.*,
-    a.name AS account_name, a.currency AS account_currency,
-    ta.name AS to_account_name, ta.currency AS to_account_currency,
-    c.name AS category_name, c.icon AS category_icon, c.color AS category_color,
-    p.name AS parent_category_name
+export interface TransactionFilter {
+  /** Matches note, account, category and parent category names, or an exact amount. */
+  search?: string;
+  type?: TxnType;
+  /** Matches transactions leaving or entering this account. */
+  accountId?: string;
+  /** A parent category also matches its sub-categories. */
+  categoryId?: string;
+  /** Inclusive YYYY-MM-DD bounds. */
+  dateFrom?: string;
+  dateTo?: string;
+}
+
+const FROM_SQL = `
   FROM transactions t
   JOIN accounts a ON a.id = t.account_id
   LEFT JOIN accounts ta ON ta.id = t.to_account_id
   LEFT JOIN categories c ON c.id = t.category_id
-  LEFT JOIN categories p ON p.id = c.parent_id
-  WHERE t.deleted_at IS NULL`;
+  LEFT JOIN categories p ON p.id = c.parent_id`;
+
+function buildWhere(filter: TransactionFilter = {}): { sql: string; params: any[] } {
+  const where = ['t.deleted_at IS NULL'];
+  const params: any[] = [];
+  if (filter.type) {
+    where.push('t.type = ?');
+    params.push(filter.type);
+  }
+  if (filter.accountId) {
+    where.push('(t.account_id = ? OR t.to_account_id = ?)');
+    params.push(filter.accountId, filter.accountId);
+  }
+  if (filter.categoryId) {
+    where.push('(c.id = ? OR c.parent_id = ?)');
+    params.push(filter.categoryId, filter.categoryId);
+  }
+  if (filter.dateFrom) {
+    where.push('t.date >= ?');
+    params.push(filter.dateFrom);
+  }
+  if (filter.dateTo) {
+    where.push('t.date <= ?');
+    params.push(filter.dateTo);
+  }
+  const q = filter.search?.trim();
+  if (q) {
+    const like = `%${q.replace(/[\\%_]/g, '\\$&')}%`;
+    const parts = ['t.note', 'a.name', 'ta.name', 'c.name', 'p.name'].map(
+      (col) => `${col} LIKE ? ESCAPE '\\'`,
+    );
+    params.push(like, like, like, like, like);
+    const amount = parseAmountToMinor(q);
+    if (amount !== null) {
+      parts.push('t.amount_minor = ?');
+      params.push(amount);
+    }
+    where.push(`(${parts.join(' OR ')})`);
+  }
+  return { sql: where.join(' AND '), params };
+}
 
 export function listTransactions(
   db: Db,
-  opts: { limit?: number; offset?: number; accountId?: string } = {},
+  opts: { limit?: number; offset?: number; filter?: TransactionFilter } = {},
 ) {
-  const params: any[] = [];
-  let filter = '';
-  if (opts.accountId) {
-    filter = ' AND (t.account_id = ? OR t.to_account_id = ?)';
-    params.push(opts.accountId, opts.accountId);
-  }
-  params.push(opts.limit ?? 200, opts.offset ?? 0);
+  const { sql, params } = buildWhere(opts.filter);
   return db.getAllAsync<TransactionRow>(
-    `${ROW_SQL}${filter} ORDER BY t.date DESC, t.created_at DESC LIMIT ? OFFSET ?`,
+    `SELECT t.*,
+       a.name AS account_name, a.currency AS account_currency,
+       ta.name AS to_account_name, ta.currency AS to_account_currency,
+       c.name AS category_name, c.icon AS category_icon, c.color AS category_color,
+       p.name AS parent_category_name
+     ${FROM_SQL}
+     WHERE ${sql}
+     ORDER BY t.date DESC, t.created_at DESC LIMIT ? OFFSET ?`,
+    [...params, opts.limit ?? 200, opts.offset ?? 0],
+  );
+}
+
+export interface TransactionTotals {
+  count: number;
+  /** Income and expense in base currency (QAR). Transfers are excluded from both. */
+  incomeMinor: number;
+  expenseMinor: number;
+}
+
+/** Totals over every transaction matching the filter (not just the page shown). */
+export async function summarizeTransactions(
+  db: Db,
+  filter: TransactionFilter = {},
+): Promise<TransactionTotals> {
+  const { sql, params } = buildWhere(filter);
+  const row = await db.getFirstAsync<{ count: number; income: number; expense: number }>(
+    `SELECT COUNT(*) AS count,
+       COALESCE(SUM(CASE WHEN t.type = 'income'  THEN t.base_amount_minor END), 0) AS income,
+       COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.base_amount_minor END), 0) AS expense
+     ${FROM_SQL}
+     WHERE ${sql}`,
     params,
   );
+  return { count: row?.count ?? 0, incomeMinor: row?.income ?? 0, expenseMinor: row?.expense ?? 0 };
 }
 
 export const getTransaction = (db: Db, id: string) =>

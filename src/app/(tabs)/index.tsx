@@ -2,23 +2,34 @@ import { router } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { Alert, Text, View } from 'react-native';
 import { Button, Card, Divider, EmptyText, Fab, IconCircle, Loading, Row, Screen, SectionTitle } from '@/components/ui';
+import { TransactionRow } from '@/components/TransactionRow';
+import { formatPercent, savingsOf, savingsRatePercent } from '@/domain/summary';
 import { convertMinor, formatMinor } from '@/domain/money';
 import { listAccounts } from '@/db/repositories/accounts';
 import { listCurrencies } from '@/db/repositories/currencies';
+import { listTransactions, summarizeTransactions } from '@/db/repositories/transactions';
 import { loadSampleData } from '@/db/seed/sampleData';
 import { useDbQuery } from '@/hooks/useDbQuery';
+import { monthLabel, monthRange, today } from '@/lib/dates';
 import { useTheme } from '@/theme';
 import { BASE_CURRENCY } from '@/types';
 
 export default function HomeScreen() {
   const t = useTheme();
   const db = useSQLiteContext();
-  const { data } = useDbQuery(async (db) => ({
-    accounts: await listAccounts(db),
-    currencies: await listCurrencies(db),
-  }));
+  const { data } = useDbQuery(async (db) => {
+    const { from, to } = monthRange(today());
+    return {
+      accounts: await listAccounts(db),
+      currencies: await listCurrencies(db),
+      month: await summarizeTransactions(db, { dateFrom: from, dateTo: to }),
+      recent: await listTransactions(db, { limit: 5 }),
+    };
+  });
   if (!data) return <Loading />;
-  const { accounts, currencies } = data;
+  const { accounts, currencies, month, recent } = data;
+  const savings = savingsOf(month.incomeMinor, month.expenseMinor);
+  const rate = savingsRatePercent(month.incomeMinor, month.expenseMinor);
 
   if (accounts.length === 0) {
     return (
@@ -37,8 +48,8 @@ export default function HomeScreen() {
     );
   }
 
-  const rate = (code: string) => currencies.find((c) => c.code === code)?.rate_to_base_e8 ?? 0;
-  const netWorth = accounts.reduce((sum, a) => sum + convertMinor(a.balance_minor, rate(a.currency)), 0);
+  const fxRate = (code: string) => currencies.find((c) => c.code === code)?.rate_to_base_e8 ?? 0;
+  const netWorth = accounts.reduce((sum, a) => sum + convertMinor(a.balance_minor, fxRate(a.currency)), 0);
   const assets = accounts.filter((a) => a.type !== 'credit_card');
   const cards = accounts.filter((a) => a.type === 'credit_card');
 
@@ -56,7 +67,7 @@ export default function HomeScreen() {
             </Text>
             {a.currency !== BASE_CURRENCY ? (
               <Text style={{ color: t.textMuted, fontSize: 12 }}>
-                ≈ {formatMinor(convertMinor(a.balance_minor, rate(a.currency)), BASE_CURRENCY)}
+                ≈ {formatMinor(convertMinor(a.balance_minor, fxRate(a.currency)), BASE_CURRENCY)}
               </Text>
             ) : null}
           </View>
@@ -69,6 +80,39 @@ export default function HomeScreen() {
   return (
     <View style={{ flex: 1 }}>
     <Screen>
+      <Card style={{ padding: 20 }}>
+        <Text style={{ color: t.textMuted, fontWeight: '700', marginBottom: 14 }}>{monthLabel(today())}</Text>
+        <View style={{ flexDirection: 'row' }}>
+          <Stat label="Income" value={formatMinor(month.incomeMinor, BASE_CURRENCY)} color={t.income} />
+          <Stat label="Expense" value={formatMinor(month.expenseMinor, BASE_CURRENCY)} color={t.expense} />
+        </View>
+        <View style={{ height: 1, backgroundColor: t.border, marginVertical: 14 }} />
+        <View style={{ flexDirection: 'row' }}>
+          <Stat label="Savings" value={formatMinor(savings, BASE_CURRENCY)} color={savings < 0 ? t.expense : t.text} />
+          <Stat label="Savings rate" value={formatPercent(rate)} color={rate !== null && rate < 0 ? t.expense : t.text} />
+        </View>
+        <Text style={{ color: t.textMuted, fontSize: 12, marginTop: 12 }}>
+          Transfers are not counted. Foreign-currency entries are in {BASE_CURRENCY} at the rate used when entered.
+        </Text>
+      </Card>
+
+      <SectionTitle>Recent transactions</SectionTitle>
+      <Card>
+        {recent.length === 0 ? <EmptyText>No transactions yet.</EmptyText> : null}
+        {recent.map((r, i) => (
+          <View key={r.id}>
+            {i > 0 ? <Divider /> : null}
+            <TransactionRow t={r} onPress={() => router.push(`/transaction/${r.id}`)} />
+          </View>
+        ))}
+        {recent.length > 0 ? (
+          <>
+            <Divider />
+            <Row title="See all transactions" onPress={() => router.push('/transactions')} />
+          </>
+        ) : null}
+      </Card>
+
       <Card style={{ padding: 20 }}>
         <Text style={{ color: t.textMuted, fontWeight: '600' }}>Net balance (all accounts)</Text>
         <Text style={{ color: netWorth < 0 ? t.expense : t.text, fontSize: 30, fontWeight: '800', marginTop: 4 }}>
@@ -88,6 +132,18 @@ export default function HomeScreen() {
       ) : null}
     </Screen>
     <Fab onPress={() => router.push('/transaction/new')} />
+    </View>
+  );
+}
+
+function Stat({ label, value, color }: { label: string; value: string; color: string }) {
+  const t = useTheme();
+  return (
+    <View style={{ flex: 1 }}>
+      <Text style={{ color: t.textMuted, fontSize: 12, fontWeight: '600' }}>{label}</Text>
+      <Text style={{ color, fontSize: 18, fontWeight: '800', marginTop: 2 }} numberOfLines={1} adjustsFontSizeToFit>
+        {value}
+      </Text>
     </View>
   );
 }
