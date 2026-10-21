@@ -13,7 +13,7 @@ One-time setup:
    If you get "command not found" or "not recognized", install it:
    - Go to https://nodejs.org, download the **LTS** installer, run it with the default options.
    - Close and reopen the Terminal, then run `node -v` again to confirm.
-2. Install **Expo Go** on your iPhone from the App Store.
+2. Install **Expo Go** on your iPhone from the App Store (keep it updated). This project uses **Expo SDK 57**, which matches the current App Store version of Expo Go.
 3. Get the project onto your computer: `git clone https://github.com/nabeelkgm-cyber/budget-tracker_nabeel.git`, then
    `cd budget-tracker_nabeel` and `git checkout claude/amazing-cori-owc4a6`.
    (Or use GitHub's green **Code** button -> **Download ZIP** on that branch and unzip it.)
