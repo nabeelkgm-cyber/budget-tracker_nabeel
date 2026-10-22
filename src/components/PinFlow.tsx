@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Alert, Modal, Pressable, Text, View } from 'react-native';
+import { Modal, Pressable, Text, View } from 'react-native';
+import { Alert } from '@/lib/alert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { isWeakPin } from '@/domain/pin';
 import { checkPin } from '@/services/lock';

@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import { Alert, Pressable, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
+import { Alert } from '@/lib/alert';
 import { Button, Card, Divider, EmptyText, IconCircle, Loading, Screen, SectionTitle } from '@/components/ui';
 import { checkBudgetAlerts } from '@/db/repositories/budgets';
 import {

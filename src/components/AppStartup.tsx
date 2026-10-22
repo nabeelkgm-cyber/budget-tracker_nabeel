@@ -1,9 +1,11 @@
 import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useRef, useState } from 'react';
-import { Alert, AppState } from 'react-native';
+import { AppState } from 'react-native';
+import { Alert } from '@/lib/alert';
 import { processRecurring } from '@/db/repositories/recurring';
 import { formatBudgetAlert } from '@/lib/budgetText';
 import { prettyDate, today } from '@/lib/dates';
+import { requestPersistentStorage } from '@/services/persistence';
 import { configureNotificationHandler, rescheduleReminders } from '@/services/notifications';
 import { useLock } from './LockProvider';
 
@@ -27,6 +29,7 @@ export function AppStartup() {
 
   useEffect(() => {
     configureNotificationHandler();
+    requestPersistentStorage().catch(() => false);
 
     const run = async () => {
       if (running.current) return;

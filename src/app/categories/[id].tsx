@@ -1,7 +1,8 @@
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useState } from 'react';
-import { Alert, Text } from 'react-native';
+import { Text } from 'react-native';
+import { Alert } from '@/lib/alert';
 import { Button, Chip, ChipRow, ColorPicker, Field, IconPicker, Label, Loading, Screen, Segmented } from '@/components/ui';
 import { createCategory, getCategory, listCategories, setCategoryArchived, updateCategory } from '@/db/repositories/categories';
 import { useDbQuery } from '@/hooks/useDbQuery';

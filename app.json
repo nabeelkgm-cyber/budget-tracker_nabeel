@@ -24,6 +24,15 @@
           "faceIDPermission": "Budget Tracker uses Face ID to unlock the app and keep your finances private."
         }
       ]
-    ]
+    ],
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "favicon": "./assets/favicon.png",
+      "name": "Budget Tracker",
+      "shortName": "Budget",
+      "backgroundColor": "#ffffff",
+      "themeColor": "#0f766e"
+    }
   }
 }

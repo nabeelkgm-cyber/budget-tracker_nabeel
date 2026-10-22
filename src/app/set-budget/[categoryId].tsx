@@ -1,7 +1,8 @@
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useState } from 'react';
-import { Alert, Switch, Text, View } from 'react-native';
+import { Switch, Text, View } from 'react-native';
+import { Alert } from '@/lib/alert';
 import { BudgetBar } from '@/components/BudgetBar';
 import { Button, Card, Field, IconCircle, Loading, Screen } from '@/components/ui';
 import { checkBudgetAlerts, deleteBudget, getMonthBudget, upsertBudget } from '@/db/repositories/budgets';

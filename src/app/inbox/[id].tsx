@@ -1,7 +1,8 @@
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, Switch, Text, View } from 'react-native';
+import { Switch, Text, View } from 'react-native';
+import { Alert } from '@/lib/alert';
 import { Button, Card, Chip, ChipRow, Field, Label, Loading, Screen, Segmented } from '@/components/ui';
 import { listAccounts } from '@/db/repositories/accounts';
 import { listCategories } from '@/db/repositories/categories';

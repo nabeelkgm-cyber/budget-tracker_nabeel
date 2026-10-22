@@ -1,7 +1,8 @@
 import { router } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useMemo, useState } from 'react';
-import { Alert, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
+import { Alert } from '@/lib/alert';
 import { Button, Card, Chip, ChipRow, Label, Loading, Screen, SectionTitle } from '@/components/ui';
 import { listAccounts } from '@/db/repositories/accounts';
 import { addBatch } from '@/db/repositories/inbox';

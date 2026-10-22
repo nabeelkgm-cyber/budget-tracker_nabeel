@@ -1,7 +1,8 @@
 import dayjs from 'dayjs';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useState } from 'react';
-import { Alert, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
+import { Alert } from '@/lib/alert';
 import { Button, Card, Loading, Screen, SectionTitle } from '@/components/ui';
 import {
   ImportPreview,

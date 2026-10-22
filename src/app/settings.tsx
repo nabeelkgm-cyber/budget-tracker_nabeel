@@ -1,7 +1,8 @@
 import * as Linking from 'expo-linking';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Text, View } from 'react-native';
+import { Platform, Text, View } from 'react-native';
+import { Alert } from '@/lib/alert';
 import { Button, Card, Field, Loading, Screen, SectionTitle } from '@/components/ui';
 import { foreignPerBaseToRateE8, rateE8ToForeignPerBaseAuto } from '@/domain/money';
 import { listAccounts } from '@/db/repositories/accounts';
@@ -110,8 +111,8 @@ export default function SettingsScreen() {
         </Text>
       </Card>
 
-      <SectionTitle>Reminders</SectionTitle>
-      <Card style={{ padding: 16 }}>
+      {Platform.OS === 'web' ? null : <SectionTitle>Reminders</SectionTitle>}
+      {Platform.OS === 'web' ? null : <Card style={{ padding: 16 }}>
         <Text style={{ color: t.textMuted, fontSize: 12, marginBottom: 12 }}>
           {notifOn === null
             ? 'Checking…'
@@ -147,7 +148,7 @@ export default function SettingsScreen() {
             }
           />
         ) : null}
-      </Card>
+      </Card>}
 
       <SectionTitle>Test data</SectionTitle>
       <Card style={{ padding: 16 }}>

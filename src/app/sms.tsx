@@ -1,7 +1,8 @@
 import { router } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useState } from 'react';
-import { Alert, Switch, Text, TextInput, View } from 'react-native';
+import { Switch, Text, TextInput, View } from 'react-native';
+import { Alert } from '@/lib/alert';
 import { Button, Card, Chip, ChipRow, Label, Loading, Screen } from '@/components/ui';
 import { listAccounts } from '@/db/repositories/accounts';
 import { addBatch, addLast4, findAccountsByLast4, getAccountIdentifiers } from '@/db/repositories/inbox';

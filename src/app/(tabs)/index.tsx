@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import { Alert, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
+import { Alert } from '@/lib/alert';
 import { Button, Card, Divider, EmptyText, Fab, IconCircle, Loading, Row, Screen, SectionTitle } from '@/components/ui';
 import { BudgetBar, stateColor } from '@/components/BudgetBar';
 import { TransactionRow } from '@/components/TransactionRow';

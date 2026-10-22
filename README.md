@@ -50,3 +50,35 @@ __tests__/      automated tests
 
 ## Database changes
 Schema changes are numbered migrations in `src/db/migrations.ts`. Never edit an old one; add a new one at the end.
+
+## Use it as a web app (no Apple fee)
+
+The same app also runs in the browser and can be installed on the iPhone Home Screen.
+
+**Build** (on your computer, inside the project folder):
+
+```
+npm run build:web
+```
+
+This creates a folder called `dist`.
+
+**Publish** (free): open https://app.netlify.com/drop, sign in, and drag the `dist` folder onto the page.
+Netlify gives you an `https://….netlify.app` address. (Cloudflare Pages also works: upload `dist`.)
+To update later, build again and drag the new `dist` folder onto your site's *Deploys* page.
+
+**Install on the iPhone**: open the address in **Safari** → Share button → **Add to Home Screen**.
+Always open the app from that Home Screen icon.
+
+**Move your data from the Expo Go version**: in the old app go to More → Backup & data → Create backup,
+send the file to yourself, then in the web app use the same screen to restore it.
+
+**Differences from the native app**
+- No Face ID (PIN lock only) and no reminders while the app is closed; the Home screen still shows recurring items that are due.
+- Data lives inside Safari on that phone. Clearing Safari website data, deleting the Home Screen app, or
+  not using it for a long time can erase it, so **make a backup every week**.
+- The PIN is stored in the browser, so it keeps casual viewers out but is weaker than the iPhone Keychain.
+
+Developer notes: expo-sqlite web support is alpha; it needs the `Cross-Origin-Opener-Policy` /
+`Cross-Origin-Embedder-Policy` headers (set in `metro.config.js` and `public/_headers`), and `Alert` goes through
+`src/lib/alert.ts` because react-native-web's own Alert does nothing.

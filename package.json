@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "main": "expo-router/entry",
   "dependencies": {
+    "@expo/metro-runtime": "~57.0.17",
     "@expo/vector-icons": "^15.0.2",
     "@react-native-community/datetimepicker": "9.1.0",
     "dayjs": "^1.11.23",
@@ -26,7 +27,8 @@
     "react-native": "0.86.3",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "~4.26.0",
-    "react-native-svg": "^15.15.4"
+    "react-native-svg": "^15.15.4",
+    "react-native-web": "^0.21.4"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
@@ -40,7 +42,9 @@
     "ios": "expo start --ios",
     "test": "jest",
     "typecheck": "tsc --noEmit",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "build:web": "expo export --platform web",
+    "web": "expo start --web"
   },
   "private": true
 }

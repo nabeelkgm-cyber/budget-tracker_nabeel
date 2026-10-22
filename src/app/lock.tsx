@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Switch, Text, View } from 'react-native';
+import { Switch, Text, View } from 'react-native';
+import { Alert } from '@/lib/alert';
 import { PinFlow, PinFlowKind } from '@/components/PinFlow';
 import { useLock } from '@/components/LockProvider';
 import { Button, Card, Chip, ChipRow, Label, Screen, SectionTitle } from '@/components/ui';

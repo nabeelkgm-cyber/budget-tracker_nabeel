@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, AppState, Modal, Pressable, Text, View } from 'react-native';
+import { AppState, Modal, Pressable, Text, View } from 'react-native';
+import { Alert } from '@/lib/alert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LockSettings, authenticateBiometric, biometricInfo, checkPin, secondsUntilNextTry, BiometricInfo } from '@/services/lock';
 import { useTheme } from '@/theme';

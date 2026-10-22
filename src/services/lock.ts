@@ -1,6 +1,6 @@
 import * as Crypto from 'expo-crypto';
 import * as LocalAuthentication from 'expo-local-authentication';
-import * as SecureStore from 'expo-secure-store';
+import { secureDelete, secureGet, secureSet } from './secureStorage';
 import { StoredPin, createStoredPin, lockoutSeconds, verifyPin } from '@/domain/pin';
 
 /**
@@ -16,14 +16,10 @@ const KEY = {
   until: 'lock.until',
 } as const;
 
-const OPTIONS: SecureStore.SecureStoreOptions = {
-  keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
-};
-
 const hash = (text: string) => Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, text);
-const get = (key: string) => SecureStore.getItemAsync(key, OPTIONS);
-const set = (key: string, value: string) => SecureStore.setItemAsync(key, value, OPTIONS);
-const del = (key: string) => SecureStore.deleteItemAsync(key, OPTIONS);
+const get = secureGet;
+const set = secureSet;
+const del = secureDelete;
 
 export const DEFAULT_TIMEOUT_SECONDS = 60;
 

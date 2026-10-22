@@ -1,7 +1,8 @@
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useState } from 'react';
-import { Alert, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
+import { Alert } from '@/lib/alert';
 import { Button, Chip, ChipRow, ColorPicker, Field, IconPicker, Label, Loading, Screen } from '@/components/ui';
 import { minorToInput, parseAmountToMinor, zeroText } from '@/domain/money';
 import { createAccount, getAccount, setAccountArchived, updateAccount } from '@/db/repositories/accounts';
