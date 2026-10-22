@@ -10,6 +10,37 @@ interface Migration {
   foreignKeysOff?: boolean;
 }
 
+
+/** [table, primary key column, optional filter on which rows sync]. Frozen: part of migration v7. */
+const V7_SYNC_TABLES: [string, string, string?][] = [
+  ['settings', 'key', "IN ('base_currency','seeded')"],
+  ['currencies', 'code'],
+  ['accounts', 'id'],
+  ['categories', 'id'],
+  ['account_identifiers', 'id'],
+  ['merchant_rules', 'id'],
+  ['transactions', 'id'],
+  ['budgets', 'id'],
+  ['recurring_rules', 'id'],
+  ['recurring_due', 'id'],
+  ['import_batches', 'id'],
+  ['import_items', 'id'],
+];
+
+const NOW_MS = "CAST((julianday('now') - 2440587.5) * 86400000 AS INTEGER)";
+
+function syncTriggers(table: string, pk: string, only?: string): string {
+  const on = (row: 'NEW' | 'OLD') =>
+    `WHEN (SELECT value FROM sync_meta WHERE key = 'capture') = '1'${only ? ` AND ${row}.${pk} ${only}` : ''}`;
+  const body = (row: 'NEW' | 'OLD') =>
+    `BEGIN INSERT INTO sync_outbox (tbl, row_id, ts) VALUES ('${table}', ${row}.${pk}, ${NOW_MS})
+       ON CONFLICT (tbl, row_id) DO UPDATE SET ts = excluded.ts; END;`;
+  return `
+  CREATE TRIGGER sync_${table}_ins AFTER INSERT ON ${table} ${on('NEW')} ${body('NEW')}
+  CREATE TRIGGER sync_${table}_upd AFTER UPDATE ON ${table} ${on('NEW')} ${body('NEW')}
+  CREATE TRIGGER sync_${table}_del AFTER DELETE ON ${table} ${on('OLD')} ${body('OLD')}`;
+}
+
 const MIGRATIONS: Migration[] = [
   // v1: core tables (currencies, accounts, categories, transactions)
   {
@@ -272,6 +303,26 @@ const MIGRATIONS: Migration[] = [
   CREATE INDEX idx_item_status ON import_items(status);
   CREATE INDEX idx_item_fp ON import_items(fingerprint);
   CREATE INDEX idx_txn_external ON transactions(external_ref);
+  `,
+  },
+
+  // v7: cloud sync bookkeeping. Triggers note every change to a synced row in sync_outbox, but only
+  // while sync_meta 'capture' = '1' (signed in and not currently applying changes from the cloud).
+  {
+    sql: `
+  CREATE TABLE sync_meta (
+    key   TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+  );
+
+  -- One row per record that changed here and has not been sent yet. ts = time of the latest change (ms).
+  CREATE TABLE sync_outbox (
+    tbl    TEXT NOT NULL,
+    row_id TEXT NOT NULL,
+    ts     INTEGER NOT NULL,
+    PRIMARY KEY (tbl, row_id)
+  );
+  ${V7_SYNC_TABLES.map(([t, pk, only]) => syncTriggers(t, pk, only)).join('\n')}
   `,
   },
 ];
