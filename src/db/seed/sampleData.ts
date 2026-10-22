@@ -12,6 +12,7 @@ import { createRecurringRule, processRecurring } from '../repositories/recurring
 import { listCategories } from '../repositories/categories';
 import { createTransaction } from '../repositories/transactions';
 import type { Db } from '../types';
+import { assertSyncOff } from '../../sync/guard';
 import { loadCurrencyRegistry } from '../currencySetup';
 import { seedDefaults } from './defaults';
 
@@ -20,6 +21,7 @@ import { seedDefaults } from './defaults';
  * Pass `reseedBase` to immediately set up again with that base currency instead.
  */
 export async function eraseAllData(db: Db, reseedBase?: string): Promise<void> {
+  await assertSyncOff(db);
   await atomic(db, async () => {
     await db.execAsync(`
       DELETE FROM import_items;

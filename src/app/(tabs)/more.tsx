@@ -59,6 +59,14 @@ export default function MoreScreen() {
         />
         <Divider />
         <Row
+          left={<IconCircle icon="sync" color="#6366F1" />}
+          title="Cloud sync"
+          subtitle="Same data on all your devices"
+          right={chevron}
+          onPress={() => router.push('/sync')}
+        />
+        <Divider />
+        <Row
           left={<IconCircle icon="lock-closed" color="#22C55E" />}
           title="App lock"
           subtitle="PIN and Face ID"

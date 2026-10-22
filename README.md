@@ -82,3 +82,32 @@ send the file to yourself, then in the web app use the same screen to restore it
 Developer notes: expo-sqlite web support is alpha; it needs the `Cross-Origin-Opener-Policy` /
 `Cross-Origin-Embedder-Policy` headers (set in `metro.config.js` and `public/_headers`), and `Alert` goes through
 `src/lib/alert.ts` because react-native-web's own Alert does nothing.
+
+## Cloud sync (same data on every device)
+
+Sync uses a free Supabase project. Your data is stored under your own login, and each login can only see its own rows.
+It works in the **web app** (Safari, Chrome, tablets, Android). The Expo Go phone app does not sync.
+
+**One-time setup (about 10 minutes)**
+1. Go to https://supabase.com, sign up, and click **New project**. Name it `budget-tracker`, choose a database password
+   (save it somewhere), pick the region nearest to you, and wait until it finishes.
+2. Open **SQL Editor → New query**, paste the whole contents of `supabase/setup.sql` from this project, and click **Run**.
+   It should say *Success*.
+3. (Simplest for personal use) **Authentication → Sign In / Providers → Email**: turn **Confirm email** off and save.
+4. **Project Settings → API**: copy the **Project URL** and the **anon / publishable key**.
+5. In the project folder create a file named `.env` (in Notepad choose *Save as*, set *Save as type* to *All files*) containing:
+   ```
+   EXPO_PUBLIC_SUPABASE_URL=https://YOUR-PROJECT.supabase.co
+   EXPO_PUBLIC_SUPABASE_ANON_KEY=YOUR-KEY
+   ```
+6. `npm install`, then `npm run build:web`, then upload the `dist` folder to Netlify (Deploys page) as before.
+7. Open the app → **More → Cloud sync** → **Create account** → **Start syncing**. On each other device sign in with the
+   same email and password. A new device can also tap *Already use this app? Sign in* on the first screen.
+
+**Good to know**
+- Changes are sent about a second after you make them and other devices update within moments, and the app still works offline.
+- If two devices edit the same entry, the later edit wins. Deleting on one device deletes everywhere.
+- When both a device and the cloud already hold data you are asked which one to keep; they are never merged.
+- Erase all data, Restore backup and Load sample data are blocked while sync is on (sign out of sync first).
+- Free Supabase projects pause after a week of no use. Your data is kept; press *Restore* in the Supabase dashboard.
+- Keep making backups. Sync copies mistakes too.

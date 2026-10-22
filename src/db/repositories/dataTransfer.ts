@@ -4,6 +4,7 @@ import { minorToInput, parseAmountToMinor, parseRateToE8 } from '@/domain/money'
 import { validateTransaction } from '@/domain/transactionRules';
 import type { Sheet } from '@/domain/xlsx';
 import type { PaymentMethod, TransactionInput, TxnType } from '@/types';
+import { assertSyncOff } from '../../sync/guard';
 import { atomic } from '../atomic';
 import { ensureCurrencyCatalog, loadCurrencyRegistry } from '../currencySetup';
 import { notifyChange } from '../events';
@@ -494,6 +495,7 @@ export function parseBackup(text: string): { backup: Backup; summary: BackupSumm
  * existing data is left exactly as it was.
  */
 export async function restoreBackup(db: Db, backup: Backup): Promise<void> {
+  await assertSyncOff(db);
   await atomic(db, async () => {
     await db.execAsync('PRAGMA defer_foreign_keys = ON;');
     for (const t of [...BACKUP_TABLES].reverse()) await db.execAsync(`DELETE FROM ${t};`);
