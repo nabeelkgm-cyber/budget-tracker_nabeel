@@ -43,7 +43,7 @@
     "test": "jest",
     "typecheck": "tsc --noEmit",
     "lint": "expo lint",
-    "build:web": "expo export --platform web",
+    "build:web": "expo export --platform web && node scripts/fix-web-build.js",
     "web": "expo start --web"
   },
   "private": true
