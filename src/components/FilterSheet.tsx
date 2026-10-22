@@ -1,4 +1,4 @@
-import DateTimePicker from '@react-native-community/datetimepicker';
+import DateTimePicker from '@/components/DatePicker';
 import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { PERIOD_LABELS, PeriodKey } from '@/domain/dateRanges';
 import { fromLocalDate, toLocalDate, today } from '@/lib/dates';

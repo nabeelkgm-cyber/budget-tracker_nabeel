@@ -4,6 +4,32 @@ const fs = require('fs');
 const path = require('path');
 
 const dist = path.join(__dirname, '..', 'dist');
+
+// Expo's single-page export ignores custom HTML, so add what the iPhone needs to install the site as an app,
+// and keep pop-up sheets inside the same phone-width column as the rest of the app.
+const indexPath = path.join(dist, 'index.html');
+if (fs.existsSync(indexPath)) {
+  let html = fs.readFileSync(indexPath, 'utf8');
+  if (!html.includes('apple-mobile-web-app-capable')) {
+    html = html.replace(/<meta name="viewport"[^>]*>/, '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />');
+    const extra = [
+      '<meta name="apple-mobile-web-app-capable" content="yes" />',
+      '<meta name="mobile-web-app-capable" content="yes" />',
+      '<meta name="apple-mobile-web-app-title" content="Budget" />',
+      '<meta name="apple-mobile-web-app-status-bar-style" content="default" />',
+      '<link rel="manifest" href="/manifest.webmanifest" />',
+      '<link rel="apple-touch-icon" href="/apple-touch-icon.png" />',
+      '<style>body{background:#DDE1E8}@media (prefers-color-scheme:dark){body{background:#000}}' +
+        'div[aria-modal="true"]{background-color:#DDE1E8!important}@media (prefers-color-scheme:dark){div[aria-modal="true"]{background-color:#000!important}}' +
+        'div[aria-modal="true"] *:focus{outline:none}' +
+        'div[aria-modal="true"]>div{max-width:560px;margin-left:auto;margin-right:auto;width:100%}</style>',
+    ].join('\n    ');
+    html = html.replace('</head>', `    ${extra}\n  </head>`);
+    fs.writeFileSync(indexPath, html);
+    console.log('Added iPhone install tags to index.html.');
+  }
+}
+
 const from = path.join(dist, 'assets', 'node_modules');
 const to = path.join(dist, 'assets', 'vendor');
 if (!fs.existsSync(from)) {
