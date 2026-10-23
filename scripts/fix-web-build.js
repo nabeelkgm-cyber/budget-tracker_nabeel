@@ -38,6 +38,16 @@ if (!fs.existsSync(from)) {
 }
 fs.renameSync(from, to);
 
+// Some hosts also skip folders whose name starts with "@" (such as @expo, which holds the icon fonts).
+const renames = [];
+for (const e of fs.readdirSync(to, { withFileTypes: true })) {
+  if (e.isDirectory() && e.name.startsWith('@')) {
+    const fresh = `at-${e.name.slice(1)}`;
+    fs.renameSync(path.join(to, e.name), path.join(to, fresh));
+    renames.push([`assets/vendor/${e.name}/`, `assets/vendor/${fresh}/`]);
+  }
+}
+
 let changed = 0;
 const walk = (dir) => {
   for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -45,7 +55,8 @@ const walk = (dir) => {
     if (e.isDirectory()) walk(p);
     else if (/\.(js|html|css|json)$/.test(e.name)) {
       const s = fs.readFileSync(p, 'utf8');
-      const t = s.split('assets/node_modules/').join('assets/vendor/');
+      let t = s.split('assets/node_modules/').join('assets/vendor/');
+      for (const [a, b] of renames) t = t.split(a).join(b);
       if (t !== s) {
         fs.writeFileSync(p, t);
         changed++;

@@ -2,7 +2,7 @@ import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SQLiteProvider } from 'expo-sqlite';
 import { ReactNode, Suspense } from 'react';
-import { Platform, View, useColorScheme } from 'react-native';
+import { useColorScheme } from 'react-native';
 import { AppStartup } from '@/components/AppStartup';
 import { LockProvider } from '@/components/LockProvider';
 import { SetupGate } from '@/components/SetupGate';
@@ -11,26 +11,9 @@ import { DB_NAME, initDatabase } from '@/db/client';
 import { SingleTabGate } from '@/components/SingleTabGate';
 import { SyncProvider } from '@/sync/SyncProvider';
 
-/** On a wide browser window the app stays a phone-width column in the middle instead of stretching. */
-function WebFrame({ children, dark }: { children: ReactNode; dark: boolean }) {
-  if (Platform.OS !== 'web') return <>{children}</>;
-  return (
-    <View style={{ flex: 1, alignItems: 'center', backgroundColor: dark ? '#000000' : '#DDE1E8' }}>
-      <View
-        style={[
-          { flex: 1, width: '100%', maxWidth: 560, overflow: 'hidden', backgroundColor: dark ? '#0B1020' : '#F4F6FB' },
-          { boxShadow: '0 0 40px rgba(15, 23, 42, 0.18)' } as object,
-        ]}>
-        {children}
-      </View>
-    </View>
-  );
-}
-
 export default function RootLayout() {
   const scheme = useColorScheme();
   return (
-    <WebFrame dark={scheme === 'dark'}>
     <ThemeProvider value={scheme === 'dark' ? DarkTheme : DefaultTheme}>
       <SingleTabGate>
       <Suspense fallback={<Loading />}>
@@ -65,6 +48,5 @@ export default function RootLayout() {
       </Suspense>
       </SingleTabGate>
     </ThemeProvider>
-    </WebFrame>
   );
 }

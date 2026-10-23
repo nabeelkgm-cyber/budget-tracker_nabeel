@@ -72,6 +72,7 @@ export default function TransactionsScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: t.bg }}>
+      <View style={{ flex: 1, width: '100%', maxWidth: 820, alignSelf: 'center' }}>
       <View style={{ flexDirection: 'row', gap: 10, padding: 16, paddingBottom: 8, alignItems: 'center' }}>
         <View
           style={{
@@ -175,6 +176,7 @@ export default function TransactionsScreen() {
         accounts={data?.accounts.filter((a) => !a.is_archived || a.id === filter.accountId) ?? []}
         categories={data?.categories.filter((c) => !c.is_archived || c.id === filter.categoryId) ?? []}
       />
+      </View>
       <Fab onPress={() => router.push('/transaction/new')} />
     </View>
   );

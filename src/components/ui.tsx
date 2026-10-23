@@ -20,7 +20,7 @@ export function Screen({ children, scroll = true }: { children: ReactNode; scrol
   const t = useTheme();
   const body = scroll ? (
     <ScrollView
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[styles.content, Platform.OS === 'web' ? styles.contentWeb : null]}
       keyboardShouldPersistTaps="handled"
       contentInsetAdjustmentBehavior="automatic">
       {children}
@@ -232,6 +232,8 @@ export function EmptyText({ children }: { children: ReactNode }) {
 
 const styles = StyleSheet.create({
   content: { padding: 16, paddingBottom: 110 },
+  // On a big screen, lists and forms stay a comfortable width and centred.
+  contentWeb: { width: '100%', maxWidth: 820, alignSelf: 'center' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   card: { borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, marginBottom: 16, overflow: 'hidden' },
   sectionTitle: { fontSize: 12, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 8, marginTop: 4 },
