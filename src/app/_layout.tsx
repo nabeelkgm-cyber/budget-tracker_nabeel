@@ -38,6 +38,7 @@ export default function RootLayout() {
             <Stack.Screen name="sms" options={{ title: 'Paste bank SMS' }} />
             <Stack.Screen name="data" options={{ title: 'Backup & data' }} />
             <Stack.Screen name="sync" options={{ title: 'Cloud sync' }} />
+            <Stack.Screen name="setup" options={{ title: 'Easy setup' }} />
             <Stack.Screen name="lock" options={{ title: 'App lock' }} />
             <Stack.Screen name="settings" options={{ title: 'Settings' }} />
           </Stack>

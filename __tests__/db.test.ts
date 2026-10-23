@@ -1,7 +1,7 @@
 /** @jest-environment node */
 import { LATEST_VERSION, migrate } from '@/db/migrations';
 import { seedDefaults } from '@/db/seed/defaults';
-import { loadSampleData } from '@/db/seed/sampleData';
+import { loadFullDemoData as loadSampleData } from '@/db/seed/sampleData';
 import { createAccount, getAccount, listAccounts, setAccountArchived } from '@/db/repositories/accounts';
 import { listCategories, setCategoryArchived, createCategory } from '@/db/repositories/categories';
 import { setCurrencyRate } from '@/db/repositories/currencies';

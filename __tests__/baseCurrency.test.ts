@@ -7,7 +7,7 @@ import { getReport } from '@/db/repositories/reports';
 import { createTransaction, getTransaction, listTransactions } from '@/db/repositories/transactions';
 import { completeSetup, ensureCurrencyCatalog, isSeeded, loadCurrencyRegistry } from '@/db/currencySetup';
 import { migrate } from '@/db/migrations';
-import { eraseAllData, loadSampleData } from '@/db/seed/sampleData';
+import { eraseAllData, loadFullDemoData as loadSampleData } from '@/db/seed/sampleData';
 import { seedDefaults } from '@/db/seed/defaults';
 import type { Db } from '@/db/types';
 import { decimalsOf, getBaseCurrency, setCurrencyRegistry } from '@/domain/currencies';

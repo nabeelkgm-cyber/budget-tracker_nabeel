@@ -3,7 +3,7 @@ import { createAccount } from '@/db/repositories/accounts';
 import { createCategory, listCategories } from '@/db/repositories/categories';
 import { getReport } from '@/db/repositories/reports';
 import { createTransaction, deleteTransaction } from '@/db/repositories/transactions';
-import { loadSampleData } from '@/db/seed/sampleData';
+import { loadFullDemoData as loadSampleData } from '@/db/seed/sampleData';
 import type { Db } from '@/db/types';
 import { currentMonth } from '@/domain/budget';
 import type { TransactionInput } from '@/types';

@@ -11,7 +11,7 @@ import { createCategory, listCategories, setCategoryArchived } from '@/db/reposi
 import { setCurrencyRate } from '@/db/repositories/currencies';
 import { createTransaction, deleteTransaction, updateTransaction } from '@/db/repositories/transactions';
 import { listPendingDue, listRecurringRules } from '@/db/repositories/recurring';
-import { eraseAllData, loadSampleData } from '@/db/seed/sampleData';
+import { eraseAllData, loadFullDemoData as loadSampleData } from '@/db/seed/sampleData';
 import type { Db } from '@/db/types';
 import { currentMonth } from '@/domain/budget';
 import type { TransactionInput } from '@/types';

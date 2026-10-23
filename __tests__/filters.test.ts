@@ -9,7 +9,7 @@ import {
   summarizeTransactions,
 } from '@/db/repositories/transactions';
 import { createCategory } from '@/db/repositories/categories';
-import { loadSampleData } from '@/db/seed/sampleData';
+import { loadFullDemoData as loadSampleData } from '@/db/seed/sampleData';
 import type { Db } from '@/db/types';
 import { monthRange, today } from '@/lib/dates';
 import type { TransactionInput } from '@/types';

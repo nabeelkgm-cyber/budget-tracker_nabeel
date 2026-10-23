@@ -17,7 +17,7 @@ import {
 } from '@/db/repositories/dataTransfer';
 import { createTransaction, deleteTransaction, listTransactions } from '@/db/repositories/transactions';
 import { isSeeded } from '@/db/currencySetup';
-import { eraseAllData, loadSampleData } from '@/db/seed/sampleData';
+import { eraseAllData, loadFullDemoData as loadSampleData } from '@/db/seed/sampleData';
 import type { Db } from '@/db/types';
 import { getBaseCurrency } from '@/domain/currencies';
 import { toCsv } from '@/domain/csv';

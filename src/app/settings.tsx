@@ -168,7 +168,7 @@ export default function SettingsScreen() {
           title="Load sample data"
           kind="secondary"
           onPress={() =>
-            confirm('Replace all data?', 'This erases everything in the app and loads sample accounts and 3 months of transactions.', () =>
+            confirm('Replace all data?', 'This erases everything in the app and loads an example budget for a 5,000 QAR monthly salary, with 3 months of transactions.', () =>
               loadSampleData(db),
             )
           }

@@ -53,8 +53,11 @@ function lcg(seed: number) {
   };
 }
 
-/** Erases everything, then loads realistic accounts and ~3 months of transactions. */
-export async function loadSampleData(db: Db): Promise<void> {
+/**
+ * A large demo with Qatari and Indian banks, loans, cross-currency transfers and fees. Not offered in the app;
+ * kept because the tests need data that exercises every feature.
+ */
+export async function loadFullDemoData(db: Db): Promise<void> {
   await eraseAllData(db, 'QAR'); // the sample uses Qatari banks, so it is always in QAR
   const cats = await listCategories(db);
   const cat = (name: string) => {
@@ -223,6 +226,160 @@ export async function loadSampleData(db: Db): Promise<void> {
   await rule({ name: 'Weekly groceries', accountId: cash, amountMinor: 15000, categoryId: cat('Groceries'), paymentMethod: 'cash', frequency: 'weekly', nextDueDate: dateNext('weekly', 5) });
   // A reminder that is already due, so Home and Recurring show something to act on.
   await rule({ name: 'Internet bill', accountId: doha, amountMinor: 15000, categoryId: cat('Utilities'), mode: 'remind', nextDueDate: dayjs().subtract(1, 'day').format(DATE_FMT) });
+  await processRecurring(db, t0);
+  notifyChange();
+}
+
+/**
+ * The sample in the app: an example monthly budget for one person earning 5,000 QAR, following a simple
+ * rule of thumb (about 30% housing, 20% saved, the rest for living costs). Every riyal of the salary has a
+ * job: the budgets add up to exactly 5,000, each with a small cushion over what is actually spent.
+ * Three months of everyday transactions that stay within the budgets.
+ */
+export const SAMPLE_SALARY_QAR = 5000;
+export const SAMPLE_BUDGETS_QAR: [string, number, boolean?][] = [
+  ['Rent', 1450],
+  ['Groceries', 600, true],
+  ['Utilities', 300],
+  ['Fuel', 250],
+  ['Transport', 100],
+  ['Family Remittance', 550],
+  ['Dining', 200],
+  ['Health', 100],
+  ['Entertainment', 150],
+  ['Shopping', 150],
+  ['Savings', 1050],
+  ['Others', 100],
+];
+
+export async function loadSampleData(db: Db): Promise<void> {
+  await eraseAllData(db, 'QAR');
+  const cats = await listCategories(db);
+  const cat = (name: string) => {
+    const c = cats.find((x) => x.name === name);
+    if (!c) throw new Error(`Missing preset category ${name}`);
+    return c.id;
+  };
+  const acct = (
+    name: string,
+    type: 'cash' | 'bank' | 'credit_card',
+    opening: number,
+    icon: string,
+    color: string,
+    card?: { limit: number; statementDay: number; dueDay: number },
+  ) =>
+    createAccount(db, {
+      name,
+      type,
+      currency: 'QAR',
+      openingBalanceMinor: opening * MINOR,
+      creditLimitMinor: card ? card.limit * MINOR : null,
+      statementDay: card?.statementDay ?? null,
+      dueDay: card?.dueDay ?? null,
+      icon,
+      color,
+    });
+
+  const bank = await acct('Salary Account', 'bank', 800, 'business', '#0EA5E9');
+  const cash = await acct('Cash', 'cash', 200, 'cash', '#22C55E');
+  const card = await acct('Credit Card', 'credit_card', 0, 'card', '#6C63FF', { limit: 5000, statementDay: 25, dueDay: 15 });
+
+  const rnd = lcg(7);
+  const amt = (min: number, max: number) => Math.round(min + rnd() * (max - min));
+  const t0 = today();
+
+  const add = async (
+    date: dayjs.Dayjs,
+    type: 'expense' | 'income',
+    accountId: string,
+    amount: number,
+    category: string,
+    note: string,
+    paymentMethod: PaymentMethod,
+  ) => {
+    const d = date.format(DATE_FMT);
+    if (d > t0) return;
+    await createTransaction(db, {
+      type,
+      date: d,
+      accountId,
+      amountMinor: Math.round(amount * MINOR),
+      categoryId: cat(category),
+      toAccountId: null,
+      toAmountMinor: null,
+      paymentMethod,
+      note,
+      source: 'sample',
+    });
+  };
+  const transfer = async (date: dayjs.Dayjs, from: string, to: string, amount: number, note: string) => {
+    const d = date.format(DATE_FMT);
+    if (d > t0) return;
+    await createTransaction(db, {
+      type: 'transfer',
+      date: d,
+      accountId: from,
+      amountMinor: Math.round(amount * MINOR),
+      categoryId: null,
+      toAccountId: to,
+      toAmountMinor: Math.round(amount * MINOR),
+      paymentMethod: 'bank_transfer',
+      note,
+      source: 'sample',
+    });
+  };
+
+  await atomic(db, async () => {
+    for (let back = 2; back >= 0; back--) {
+      const m = dayjs().startOf('month').subtract(back, 'month');
+      const day = (n: number) => m.add(n - 1, 'day');
+      const month = m.format(MONTH_FMT);
+      for (const [name, amount, rollover] of SAMPLE_BUDGETS_QAR) {
+        await upsertBudget(db, { month, categoryId: cat(name), amountMinor: amount * MINOR, rollover: !!rollover });
+      }
+
+      await add(day(1), 'income', bank, SAMPLE_SALARY_QAR, 'Salary', 'Monthly salary', 'bank_transfer');
+      await add(day(2), 'expense', bank, 1400, 'Rent', 'Room / apartment rent', 'bank_transfer');
+      await add(day(3), 'expense', bank, 1000, 'Savings', 'Pay yourself first: 20% of salary', 'bank_transfer');
+      await add(day(3), 'expense', bank, 500, 'Family Remittance', 'Money to family', 'bank_transfer');
+      await add(day(5), 'expense', bank, 180, 'Utilities', 'Electricity & water', 'bank_transfer');
+      await add(day(6), 'expense', bank, 100, 'Utilities', 'Mobile & internet', 'bank_transfer');
+      await transfer(day(2), bank, cash, 600, 'ATM withdrawal');
+
+      // Everyday spending: each category stays inside its budget.
+      let onCard = 0;
+      const spendCard = async (d: number, amount: number, category: string, note: string) => {
+        await add(day(d), 'expense', card, amount, category, note, 'card');
+        onCard += amount;
+      };
+      for (const wk of [4, 11, 18, 25]) await spendCard(wk, amt(120, 148), 'Groceries', 'Supermarket');
+      await spendCard(9, 45, 'Entertainment', 'Streaming subscription');
+      await spendCard(16, amt(55, 85), 'Entertainment', 'Cinema');
+      await spendCard(13, amt(90, 140), 'Shopping', 'Clothes / household');
+      for (const d of [7, 15, 23]) await add(day(d), 'expense', cash, amt(60, 80), 'Fuel', 'Petrol', 'cash');
+      for (const d of [10, 20]) await add(day(d), 'expense', cash, amt(20, 40), 'Transport', 'Taxi', 'cash');
+      for (const d of [8, 17, 26]) await add(day(d), 'expense', cash, amt(35, 65), 'Dining', 'Restaurant / cafe', 'cash');
+      await add(day(19), 'expense', bank, amt(60, 90), 'Health', 'Pharmacy / clinic', 'card');
+      await add(day(22), 'expense', cash, amt(40, 90), 'Others', 'Miscellaneous', 'cash');
+      // The card is paid in full each month; a card payment is a transfer, not an expense.
+      await transfer(day(27), bank, card, onCard, 'Credit card bill payment');
+    }
+  });
+
+  // Recurring items. Auto rules start after today so they do not repeat the sample history.
+  const dateNext = (dayOfMonth: number) =>
+    nextAfter(scheduleFromDate('monthly', dayjs().date(dayOfMonth).format(DATE_FMT)), t0);
+  const rule = (over: Partial<Parameters<typeof createRecurringRule>[1]>) =>
+    createRecurringRule(db, {
+      name: '', type: 'expense', accountId: bank, amountMinor: 0, categoryId: null, toAccountId: null,
+      toAmountMinor: null, paymentMethod: 'bank_transfer', note: '', frequency: 'monthly',
+      nextDueDate: t0, endDate: null, mode: 'auto', ...over,
+    });
+  await rule({ name: 'Salary', type: 'income', amountMinor: SAMPLE_SALARY_QAR * MINOR, categoryId: cat('Salary'), nextDueDate: dateNext(1) });
+  await rule({ name: 'Rent', amountMinor: 1400 * MINOR, categoryId: cat('Rent'), nextDueDate: dateNext(2) });
+  await rule({ name: 'Monthly savings', amountMinor: 1000 * MINOR, categoryId: cat('Savings'), nextDueDate: dateNext(3) });
+  // A reminder that is already due, so Home and Recurring show something to act on.
+  await rule({ name: 'Mobile & internet', amountMinor: 100 * MINOR, categoryId: cat('Utilities'), mode: 'remind', nextDueDate: dayjs().subtract(1, 'day').format(DATE_FMT) });
   await processRecurring(db, t0);
   notifyChange();
 }

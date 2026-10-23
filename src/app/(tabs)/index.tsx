@@ -21,12 +21,13 @@ export default function HomeScreen() {
     return (
       <Screen>
         <EmptyText>
-          Welcome! To start, add an account (cash, bank or credit card). After that, use the round + button at the
-          bottom right to add expenses, income and transfers.
+          Welcome! The quickest start is Easy setup: pick from common bank, cash and card accounts and from expense and
+          income categories, and change any of them to match you. Then use the + button to add expenses, income and
+          transfers.
         </EmptyText>
-        <Button title="1. Add an account" onPress={() => router.push('/accounts/new')} />
+        <Button title="Easy setup: choose your accounts and categories" onPress={() => router.push('/setup')} />
         <Button
-          title="Or try it with sample data"
+          title="Or see an example: budget for a 5,000 QAR salary"
           kind="secondary"
           onPress={() => loadSampleData(db).catch((e) => Alert.alert('Failed', String(e)))}
         />

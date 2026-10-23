@@ -1,6 +1,6 @@
 /** @jest-environment node */
 import { listAccounts } from '@/db/repositories/accounts';
-import { loadSampleData } from '@/db/seed/sampleData';
+import { loadFullDemoData as loadSampleData } from '@/db/seed/sampleData';
 import { createReadyDb } from './helpers/testDb';
 
 it('sample data leaves cash non-negative and cards owing money, never overpaid', async () => {
