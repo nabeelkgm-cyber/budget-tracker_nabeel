@@ -55,3 +55,17 @@ const walk = (dir) => {
 };
 walk(dist);
 console.log(`Renamed assets/node_modules to assets/vendor and updated ${changed} files.`);
+
+// A ready-to-upload zip of the site (for hosts where you upload a file, such as Hostinger's File Manager).
+const { zipSync } = require('fflate');
+const files = {};
+const collect = (dir, prefix) => {
+  for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+    const p = path.join(dir, e.name);
+    if (e.isDirectory()) collect(p, `${prefix}${e.name}/`);
+    else files[`${prefix}${e.name}`] = new Uint8Array(fs.readFileSync(p));
+  }
+};
+collect(dist, '');
+fs.writeFileSync(path.join(__dirname, '..', 'budget-app.zip'), zipSync(files));
+console.log('Created budget-app.zip (upload this to Hostinger).');
