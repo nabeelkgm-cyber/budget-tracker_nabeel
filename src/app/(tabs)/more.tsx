@@ -25,7 +25,7 @@ export default function MoreScreen() {
         <Row
           left={<IconCircle icon="document-text" color="#0EA5E9" />}
           title="Import bank statement"
-          subtitle="PDF, Excel or CSV statement from your bank or card"
+          subtitle="PDF, Excel or CSV from your bank"
           right={chevron}
           onPress={() => router.push('/statement')}
         />
@@ -33,7 +33,7 @@ export default function MoreScreen() {
         <Row
           left={<IconCircle icon="download" color="#F97316" />}
           title="Review inbox"
-          subtitle="Bank statements and SMS waiting for approval"
+          subtitle="Statement and SMS lines to approve"
           right={
             <>
               {waiting ? <Text style={{ color: t.primary, fontWeight: '800' }}>{waiting}</Text> : null}
@@ -62,7 +62,7 @@ export default function MoreScreen() {
         <Row
           left={<IconCircle icon="cloud-download" color="#0EA5E9" />}
           title="Backup & data"
-          subtitle="Backup, restore, Excel / CSV export and import"
+          subtitle="Backup, restore, export, import"
           right={chevron}
           onPress={() => router.push('/data')}
         />
