@@ -8,6 +8,7 @@ import { LockProvider } from '@/components/LockProvider';
 import { SetupGate } from '@/components/SetupGate';
 import { Loading } from '@/components/ui';
 import { DB_NAME, initDatabase } from '@/db/client';
+import { SingleTabGate } from '@/components/SingleTabGate';
 import { SyncProvider } from '@/sync/SyncProvider';
 
 /** On a wide browser window the app stays a phone-width column in the middle instead of stretching. */
@@ -31,6 +32,7 @@ export default function RootLayout() {
   return (
     <WebFrame dark={scheme === 'dark'}>
     <ThemeProvider value={scheme === 'dark' ? DarkTheme : DefaultTheme}>
+      <SingleTabGate>
       <Suspense fallback={<Loading />}>
         <SQLiteProvider databaseName={DB_NAME} onInit={initDatabase} useSuspense>
           <LockProvider>
@@ -61,6 +63,7 @@ export default function RootLayout() {
           </LockProvider>
         </SQLiteProvider>
       </Suspense>
+      </SingleTabGate>
     </ThemeProvider>
     </WebFrame>
   );
