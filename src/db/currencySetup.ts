@@ -9,6 +9,13 @@ export async function isSeeded(db: Db): Promise<boolean> {
   return !!(await db.getFirstAsync<{ value: string }>("SELECT value FROM settings WHERE key = 'seeded'"));
 }
 
+/** True once the user has added any account or transaction (default categories alone do not count). */
+export async function hasUserData(db: Db): Promise<boolean> {
+  const a = await db.getFirstAsync<{ n: number }>('SELECT COUNT(*) AS n FROM accounts');
+  const t = await db.getFirstAsync<{ n: number }>('SELECT COUNT(*) AS n FROM transactions');
+  return (a?.n ?? 0) + (t?.n ?? 0) > 0;
+}
+
 /**
  * Makes sure every known currency exists in an already-set-up database (older versions only had
  * QAR and INR). Missing ones get a placeholder rate against the base; existing rates are untouched.

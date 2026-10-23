@@ -1,4 +1,4 @@
-import { isSeeded, loadCurrencyRegistry } from '@/db/currencySetup';
+import { hasUserData, isSeeded, loadCurrencyRegistry } from '@/db/currencySetup';
 import { notifyChange } from '@/db/events';
 import type { Db } from '@/db/types';
 import { SYNCED_SETTINGS, SYNC_TABLES, SYNC_TABLE_BY_NAME, type SyncTable } from './tables';
@@ -57,7 +57,8 @@ export type ConnectState = 'upload' | 'download' | 'choose';
 
 /** Decides what happens when this device connects to the cloud. 'choose' means both sides have data. */
 export async function planConnect(db: Db, remote: Remote): Promise<ConnectState> {
-  const [cloud, local] = await Promise.all([remote.hasData(), isSeeded(db)]);
+  // A device that only holds the default categories counts as empty.
+  const [cloud, local] = await Promise.all([remote.hasData(), hasUserData(db)]);
   if (cloud && local) return 'choose';
   return cloud ? 'download' : 'upload';
 }

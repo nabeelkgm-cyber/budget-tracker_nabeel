@@ -3,7 +3,7 @@ import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useEffect, useState } from 'react';
 import { Platform, Text, View } from 'react-native';
 import { Alert } from '@/lib/alert';
-import { Button, Card, Field, Loading, Screen, SectionTitle } from '@/components/ui';
+import { Button, Card, Chip, ChipRow, Field, Loading, Screen, SectionTitle } from '@/components/ui';
 import { foreignPerBaseToRateE8, rateE8ToForeignPerBaseAuto } from '@/domain/money';
 import { listAccounts } from '@/db/repositories/accounts';
 import { listCurrencies, setCurrencyRate } from '@/db/repositories/currencies';
@@ -16,7 +16,8 @@ import {
   sendTestNotification,
 } from '@/services/notifications';
 import { useTheme } from '@/theme';
-import { catalogEntry, getBaseCurrency } from '@/domain/currencies';
+import { GCC_CURRENCIES, catalogEntry, getBaseCurrency } from '@/domain/currencies';
+import { hasUserData } from '@/db/currencySetup';
 
 export default function SettingsScreen() {
   const db = useSQLiteContext();
@@ -62,6 +63,18 @@ export default function SettingsScreen() {
       { text: 'Continue', style: 'destructive', onPress: () => action().catch((e) => Alert.alert('Failed', String(e))) },
     ]);
 
+  const changeCurrency = async (code: string, name: string) => {
+    if (await hasUserData(db)) {
+      confirm(
+        `Change currency to ${name}?`,
+        'This deletes all accounts, categories, transactions and budgets, then starts again in the new currency. It cannot be undone. Make a backup first if you want to keep your data.',
+        () => eraseAllData(db, code),
+      );
+    } else {
+      await eraseAllData(db, code).catch((e) => Alert.alert('Failed', String(e instanceof Error ? e.message : e)));
+    }
+  };
+
   return (
     <Screen>
       <SectionTitle>Your currency</SectionTitle>
@@ -70,20 +83,19 @@ export default function SettingsScreen() {
           {baseInfo ? `${baseInfo.name} (${base})` : base}
         </Text>
         <Text style={{ color: t.textMuted, fontSize: 12, marginTop: 4, marginBottom: 12 }}>
-          Budgets, reports and totals are in {base}. It was chosen when you first opened the app. To switch to another
-          Gulf currency (SAR, AED, OMR, KWD, BHD or QAR) you need to erase all data and set up again.
+          Budgets, reports and totals are in this currency. Choose another Gulf currency below. Amounts already saved
+          cannot be converted, so changing it after you have entered accounts or transactions erases that data first.
         </Text>
-        <Button
-          title="Change currency (erases all data)"
-          kind="danger"
-          onPress={() =>
-            confirm(
-              'Change currency?',
-              'This deletes all accounts, categories, transactions and budgets, then asks you to choose a currency again. It cannot be undone.',
-              () => eraseAllData(db),
-            )
-          }
-        />
+        <ChipRow>
+          {GCC_CURRENCIES.map((c) => (
+            <Chip
+              key={c.code}
+              label={c.code}
+              selected={c.code === base}
+              onPress={() => c.code !== base && changeCurrency(c.code, c.name)}
+            />
+          ))}
+        </ChipRow>
       </Card>
 
       <SectionTitle>Exchange rates</SectionTitle>
@@ -165,8 +177,8 @@ export default function SettingsScreen() {
           title="Erase all data"
           kind="danger"
           onPress={() =>
-            confirm('Erase everything?', 'All accounts, categories, transactions and budgets will be deleted, and you will choose your currency again. This cannot be undone.', () =>
-              eraseAllData(db),
+            confirm('Erase everything?', 'All accounts, categories, transactions and budgets will be deleted. Your currency is kept. This cannot be undone.', () =>
+              eraseAllData(db, base),
             )
           }
         />

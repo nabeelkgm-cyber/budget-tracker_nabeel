@@ -1,7 +1,9 @@
 import { useSQLiteContext } from 'expo-sqlite';
 import { ReactNode, createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState, StyleSheet, View } from 'react-native';
+import { getBaseCurrency } from '@/domain/currencies';
 import { eraseAllData } from '@/db/seed/sampleData';
+import { stopSync } from '@/sync/engine';
 import { shouldLockAfterAbsence } from '@/domain/pin';
 import { DEFAULT_TIMEOUT_SECONDS, LockSettings, disableLock, getLockSettings } from '@/services/lock';
 import { rescheduleReminders } from '@/services/notifications';
@@ -66,7 +68,8 @@ export function LockProvider({ children }: { children: ReactNode }) {
 
   /** "Forgot PIN": wipes the app's data and the lock, so the phone is never stuck. */
   const forgotPin = useCallback(async () => {
-    await eraseAllData(db);
+    await stopSync(db); // a device connected to the cloud must disconnect first; the cloud copy is untouched
+    await eraseAllData(db, getBaseCurrency());
     await disableLock();
     await rescheduleReminders(db).catch(() => 0);
     setSettings(OFF);

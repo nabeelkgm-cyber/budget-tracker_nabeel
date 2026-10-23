@@ -202,10 +202,25 @@ describe('cloud sync', () => {
   it('asks the user when both sides already hold data', async () => {
     const x = await createReadyDb();
     const y = await createReadyDb();
+    await account(x, 'Mine');
+    await account(y, 'Theirs');
     cloud = new FakeCloud();
     await startSync(x, cloud.remote(), 'u', 'upload');
     await syncOnce(x, cloud.remote());
     expect(await planConnect(y, cloud.remote())).toBe('choose');
+  });
+
+  it('a device holding only the default categories simply loads the cloud copy', async () => {
+    const x = await createReadyDb();
+    await account(x, 'Mine');
+    const y = await createReadyDb(); // set up automatically at first run, nothing entered yet
+    cloud = new FakeCloud();
+    await startSync(x, cloud.remote(), 'u', 'upload');
+    await syncOnce(x, cloud.remote());
+    expect(await planConnect(y, cloud.remote())).toBe('download');
+    await startSync(y, cloud.remote(), 'u', 'download');
+    await syncOnce(y, cloud.remote());
+    expect(await q(y, 'SELECT name FROM accounts')).toEqual([{ name: 'Mine' }]);
   });
 
   it('replacing the cloud from one device tells the other to reload', async () => {

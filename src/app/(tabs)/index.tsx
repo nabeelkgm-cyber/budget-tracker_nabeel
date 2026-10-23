@@ -30,6 +30,7 @@ export default function HomeScreen() {
           kind="secondary"
           onPress={() => loadSampleData(db).catch((e) => Alert.alert('Failed', String(e)))}
         />
+        <EmptyText>Already use this app on another device? Open More, then Cloud sync, and sign in to load your data.</EmptyText>
       </Screen>
     );
   }
