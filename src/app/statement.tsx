@@ -9,15 +9,17 @@ import { addBatch } from '@/db/repositories/inbox';
 import { parseCsv } from '@/domain/csv';
 import { convertStatementItems, displayAmount } from '@/domain/importConvert';
 import { ColumnMapping, StatementField, detectColumns, extractStatementItems } from '@/domain/statement';
+import { pdfItemsToGrid } from '@/domain/pdfTable';
 import { readXlsx } from '@/domain/xlsxRead';
 import { useDbQuery } from '@/hooks/useDbQuery';
 import { pickFileBytes } from '@/services/files';
+import { readPdfText } from '@/services/pdfText';
 import { sha256 } from '@/services/hash';
 import { useTheme } from '@/theme';
 
 interface Loaded {
   name: string;
-  kind: 'csv' | 'xlsx';
+  kind: 'csv' | 'xlsx' | 'pdf';
   sheets: { name: string; rows: string[][] }[];
 }
 
@@ -58,12 +60,18 @@ export default function StatementScreen() {
       if (!picked) return;
       const isXlsx = /\.xlsx$/i.test(picked.name) || (picked.bytes[0] === 0x50 && picked.bytes[1] === 0x4b);
       if (/\.xls$/i.test(picked.name)) throw new Error('Old .xls files are not supported. Open it in Excel or Numbers and save as .xlsx or CSV.');
+      let loaded: Loaded;
       if (/\.pdf$/i.test(picked.name) || String.fromCharCode(...picked.bytes.slice(0, 4)) === '%PDF') {
-        throw new Error('PDF statements are not supported yet. Download the statement as CSV or Excel from your bank if it offers that.');
+        const pages = await readPdfText(picked.bytes);
+        if (!pages.some((p) => p.length)) throw new Error('This PDF has no readable text. It may be a scanned picture. Download the statement from your bank as a PDF with text, or as CSV or Excel.');
+        const grid = pdfItemsToGrid(pages);
+        if (!grid) throw new Error('Could not find the transaction table in this PDF (a row with Date, Description and Debit / Credit or Amount). Try the bank\'s CSV or Excel download instead.');
+        loaded = { name: picked.name, kind: 'pdf', sheets: [{ name: 'PDF', rows: grid }] };
+      } else {
+        loaded = isXlsx
+          ? { name: picked.name, kind: 'xlsx', sheets: readXlsx(picked.bytes).filter((s) => s.rows.some((r) => r.length)) }
+          : { name: picked.name, kind: 'csv', sheets: [{ name: 'CSV', rows: parseCsv(new TextDecoder('utf-8').decode(picked.bytes)) }] };
       }
-      const loaded: Loaded = isXlsx
-        ? { name: picked.name, kind: 'xlsx', sheets: readXlsx(picked.bytes).filter((s) => s.rows.some((r) => r.length)) }
-        : { name: picked.name, kind: 'csv', sheets: [{ name: 'CSV', rows: parseCsv(new TextDecoder('utf-8').decode(picked.bytes)) }] };
       if (!loaded.sheets.length || !loaded.sheets[0].rows.length) throw new Error('The file has no data.');
       setFile(loaded);
       setSheetIdx(0);
@@ -115,7 +123,7 @@ export default function StatementScreen() {
   return (
     <Screen>
       <Text style={{ color: t.textMuted, fontSize: 12, marginBottom: 12 }}>
-        Import a bank or card statement downloaded as CSV or Excel (.xlsx). Lines are checked against what you already
+        Import a bank or card statement as a PDF, Excel (.xlsx) or CSV file. PDFs are read on your device (in the web app); check the preview below, because layouts differ between banks. Lines are checked against what you already
         have and added to the review inbox. Nothing is saved to your books until you approve it.
       </Text>
       <Button title={file ? 'Choose a different file…' : 'Choose statement file…'} onPress={choose} disabled={busy} />

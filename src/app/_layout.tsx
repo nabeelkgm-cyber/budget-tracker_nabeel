@@ -2,12 +2,13 @@ import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SQLiteProvider } from 'expo-sqlite';
 import { ReactNode, Suspense } from 'react';
-import { useColorScheme } from 'react-native';
+import { View, useColorScheme } from 'react-native';
 import { AppStartup } from '@/components/AppStartup';
 import { LockProvider } from '@/components/LockProvider';
 import { SetupGate } from '@/components/SetupGate';
 import { Loading } from '@/components/ui';
 import { DB_NAME, initDatabase } from '@/db/client';
+import { FloatingNav } from '@/components/FloatingNav';
 import { SingleTabGate } from '@/components/SingleTabGate';
 import { SyncProvider } from '@/sync/SyncProvider';
 
@@ -22,6 +23,7 @@ export default function RootLayout() {
           <SyncProvider>
           <AppStartup />
           <SetupGate />
+          <View style={{ flex: 1 }}>
           <Stack screenOptions={{ headerBackButtonDisplayMode: 'minimal' }}>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="transaction/[id]" options={{ presentation: 'modal', title: 'Transaction' }} />
@@ -42,6 +44,8 @@ export default function RootLayout() {
             <Stack.Screen name="lock" options={{ title: 'App lock' }} />
             <Stack.Screen name="settings" options={{ title: 'Settings' }} />
           </Stack>
+          <FloatingNav />
+          </View>
           <StatusBar style="auto" />
           </SyncProvider>
           </LockProvider>
