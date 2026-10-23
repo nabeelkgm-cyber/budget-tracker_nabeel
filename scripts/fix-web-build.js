@@ -49,6 +49,7 @@ for (const e of fs.readdirSync(to, { withFileTypes: true })) {
 }
 
 let changed = 0;
+const stamp = new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
 const walk = (dir) => {
   for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
     const p = path.join(dir, e.name);
@@ -57,6 +58,7 @@ const walk = (dir) => {
       const s = fs.readFileSync(p, 'utf8');
       let t = s.split('assets/node_modules/').join('assets/vendor/');
       for (const [a, b] of renames) t = t.split(a).join(b);
+      t = t.split('__BUILD_ID__').join(stamp);
       if (t !== s) {
         fs.writeFileSync(p, t);
         changed++;

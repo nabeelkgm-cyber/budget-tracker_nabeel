@@ -4,6 +4,7 @@ import { Text } from 'react-native';
 import { Card, Divider, IconCircle, Row, Screen } from '@/components/ui';
 import { pendingCount } from '@/db/repositories/inbox';
 import { useDbQuery } from '@/hooks/useDbQuery';
+import { BUILD_ID } from '@/lib/version';
 import { useTheme } from '@/theme';
 
 export default function MoreScreen() {
@@ -82,6 +83,7 @@ export default function MoreScreen() {
           onPress={() => router.push('/settings')}
         />
       </Card>
+      <Text style={{ color: t.textMuted, fontSize: 12, textAlign: 'center', marginTop: 4 }}>Version: {BUILD_ID}</Text>
     </Screen>
   );
 }
