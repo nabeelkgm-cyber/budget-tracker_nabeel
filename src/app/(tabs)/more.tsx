@@ -23,6 +23,14 @@ export default function MoreScreen() {
         />
         <Divider />
         <Row
+          left={<IconCircle icon="document-text" color="#0EA5E9" />}
+          title="Import bank statement"
+          subtitle="PDF, Excel or CSV statement from your bank or card"
+          right={chevron}
+          onPress={() => router.push('/statement')}
+        />
+        <Divider />
+        <Row
           left={<IconCircle icon="download" color="#F97316" />}
           title="Review inbox"
           subtitle="Bank statements and SMS waiting for approval"

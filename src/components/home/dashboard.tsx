@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import dayjs from 'dayjs';
 import { router } from 'expo-router';
 import { ReactNode, useMemo } from 'react';
-import { Platform, Pressable, StyleProp, Text, View, ViewStyle } from 'react-native';
+import { Platform, Pressable, StyleProp, Text, View, ViewStyle, useWindowDimensions } from 'react-native';
 import { BudgetBar, stateColor } from '@/components/BudgetBar';
 import { DonutChart } from '@/components/charts/DonutChart';
 import { MonthlyBars } from '@/components/charts/MonthlyBars';
@@ -29,6 +29,19 @@ import type { HomeData } from './useHomeData';
 const GAP = 16;
 const OTHER_GREY = '#94A3B8';
 const q = (n: number) => formatMinor(n, getBaseCurrency());
+
+/** Largest font size (up to `base`) at which `text` still fits in `innerWidth`. Browsers ignore adjustsFontSizeToFit. */
+const fit = (text: string, base: number, innerWidth: number, min = 13) =>
+  Math.round(Math.max(min, Math.min(base, innerWidth / (Math.max(text.length, 1) * 0.62))));
+
+/** Rough inner width of one of the four key-figure cards, from the window width. */
+function useKpiInner(): number {
+  const { width } = useWindowDimensions();
+  const side = width >= 1000 ? 210 + 56 : 32; // sidebar + page padding, or just the page padding
+  const content = Math.min(1360, width - side);
+  const card = width >= 700 ? (content - 48) / 4 : (content - 16) / 2;
+  return card - 36;
+}
 
 const SHADOW =
   Platform.OS === 'web'
@@ -91,6 +104,7 @@ function Kpi({
   valueColor?: string;
 }) {
   const t = useTheme();
+  const inner = useKpiInner();
   const bg = hero ? (t.isDark ? '#1E1B4B' : '#312E81') : t.card;
   const fg = hero ? '#FFFFFF' : valueColor ?? t.text;
   const muted = hero ? 'rgba(255,255,255,0.72)' : t.textMuted;
@@ -106,7 +120,7 @@ function Kpi({
         </View>
         <Text style={{ color: muted, fontSize: 13, fontWeight: '700' }}>{label}</Text>
       </View>
-      <Text style={{ color: fg, fontSize: 26, fontWeight: '800' }} numberOfLines={1} adjustsFontSizeToFit>
+      <Text style={{ color: fg, fontSize: fit(value, 26, inner, 15), fontWeight: '800' }} numberOfLines={1}>
         {value}
       </Text>
       {typeof children === 'string' ? <Text style={{ color: muted, fontSize: 12, marginTop: 6 }}>{children}</Text> : children}
@@ -168,9 +182,9 @@ function BudgetPlan({ data, month }: { data: HomeData; month: string }) {
   }
   const st = pace.status === 'none' ? null : STATUS[pace.status];
   const stat = (label: string, value: string, color?: string) => (
-    <View style={{ flex: 1, minWidth: 90 }}>
+    <View style={{ flex: 1, minWidth: 130 }}>
       <Text style={{ color: t.textMuted, fontSize: 12, fontWeight: '600' }}>{label}</Text>
-      <Text style={{ color: color ?? t.text, fontSize: 18, fontWeight: '800', marginTop: 2 }} numberOfLines={1} adjustsFontSizeToFit>
+      <Text style={{ color: color ?? t.text, fontSize: fit(value, 18, 130, 13), fontWeight: '800', marginTop: 2 }} numberOfLines={1}>
         {value}
       </Text>
     </View>
@@ -310,7 +324,8 @@ function SpendingBreakdown({ data }: { data: HomeData }) {
 function Trend({ data }: { data: HomeData }) {
   const t = useTheme();
   const { report } = data;
-  const avg = averageMonthlySaving(report.series);
+  const series = report.series.slice(-6); // the last six months read better than twelve
+  const avg = averageMonthlySaving(series);
   const legend = (color: string, label: string) => (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
       <View style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: color }} />
@@ -326,9 +341,9 @@ function Trend({ data }: { data: HomeData }) {
           {legend(t.expense, 'Expense')}
         </View>
       }>
-      <MonthlyBars data={report.series} selected={report.series.length - 1} onSelect={() => undefined} />
+      <MonthlyBars data={series} selected={series.length - 1} onSelect={() => undefined} />
       {avg !== null ? (
-        <Text style={{ color: t.textMuted, marginTop: 12, fontSize: 13 }}>
+        <Text style={{ color: t.textMuted, marginTop: 16, fontSize: 13 }}>
           Average saved per month:{' '}
           <Text style={{ color: avg < 0 ? t.expense : t.income, fontWeight: '800' }}>{q(avg)}</Text>
         </Text>
@@ -357,7 +372,7 @@ function AccountsSummary({ data }: { data: HomeData }) {
           <Text style={linkText(t)}>All accounts →</Text>
         </Pressable>
       }>
-      <Text style={{ color: net.netMinor < 0 ? t.expense : t.text, fontSize: 28, fontWeight: '800' }} numberOfLines={1} adjustsFontSizeToFit>
+      <Text style={{ color: net.netMinor < 0 ? t.expense : t.text, fontSize: fit(q(net.netMinor), 28, 240, 18), fontWeight: '800' }} numberOfLines={1}>
         {q(net.netMinor)}
       </Text>
       <Text style={{ color: t.textMuted, fontSize: 12, marginTop: 2, marginBottom: 14 }}>What you have minus what you owe</Text>
@@ -418,6 +433,12 @@ function Attention({ data }: { data: HomeData }) {
           <Text style={{ color: t.textMuted }}>You are all caught up.</Text>
         </View>
       ) : null}
+      <Row
+        onPress={() => router.push('/statement')}
+        left={<IconCircle icon="document-text" color="#0EA5E9" />}
+        title="Import a bank statement"
+        subtitle="PDF, Excel or CSV. You approve each line before it is saved."
+      />
       {inbox > 0 ? (
         <Row
           onPress={() => router.push('/inbox')}

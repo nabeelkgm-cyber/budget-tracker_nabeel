@@ -39,7 +39,7 @@ export default function InboxScreen() {
     <Screen>
       <View style={{ flexDirection: 'row', gap: 10 }}>
         <View style={{ flex: 1 }}>
-          <Button title="Statement file" onPress={() => router.push('/statement')} />
+          <Button title="Statement (PDF / Excel / CSV)" onPress={() => router.push('/statement')} />
         </View>
         <View style={{ flex: 1 }}>
           <Button title="Paste bank SMS" kind="secondary" onPress={() => router.push('/sms')} />

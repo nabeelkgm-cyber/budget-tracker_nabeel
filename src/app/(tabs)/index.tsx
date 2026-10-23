@@ -43,7 +43,7 @@ export default function HomeScreen() {
       <ScrollView contentContainerStyle={{ padding: isWide ? 28 : 16, paddingBottom: 130, alignItems: 'center' }}>
         <View style={{ width: '100%', maxWidth: 1360, gap: 16 }}>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-            <View>
+            <View style={{ flexShrink: 1 }}>
               <Text style={{ color: t.text, fontSize: isWide ? 28 : 22, fontWeight: '800' }}>Monthly overview</Text>
               <Text style={{ color: t.textMuted, marginTop: 2 }}>Your income, spending, budget and savings in one place</Text>
             </View>
